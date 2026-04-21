@@ -110,13 +110,14 @@ INSERT INTO FOLLOW_UP (
     adopter_feedback,
     result_status,
     staff_note
-) VALUES (
-    16,
-    2,
-    CURDATE(),
-    'Phone Check',
-    'Healthy',
-    'Pet is adapting well to the new home',
-    'Good',
-    'No issues reported by adopter'
-);
+) 
+    SELECT
+        COALESCE(MAX(followup_id), 0) + 1,
+        2,
+        CURDATE(),
+        'Phone Check',
+        'Healthy',
+        'Pet is adapting well to the new home',
+        'Good',
+        'No issues reported by adopter'
+    FROM FOLLOW_UP;

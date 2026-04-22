@@ -4,185 +4,238 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PawTrack — Adoption Center System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root {
   --color-background-primary: #ffffff;
-  --color-background-secondary: #f5f4f0;
-  --color-background-tertiary: #eeede8;
-  --color-background-info: #e6f1fb;
-  --color-background-success: #eaf3de;
-  --color-background-warning: #faeeda;
-  --color-background-danger: #fcebeb;
-  --color-text-primary: #1a1a18;
-  --color-text-secondary: #6b6a65;
-  --color-text-tertiary: #9e9d98;
-  --color-text-info: #185fa5;
-  --color-text-success: #3b6d11;
-  --color-text-warning: #854f0b;
-  --color-text-danger: #a32d2d;
-  --color-border-tertiary: rgba(0,0,0,0.12);
-  --color-border-secondary: rgba(0,0,0,0.22);
-  --color-border-primary: rgba(0,0,0,0.32);
-  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --color-background-secondary: #f8f9fa;
+  --color-background-tertiary: #f1f3f5;
+  --color-background-info: #e7f5ff;
+  --color-background-success: #ebfbee;
+  --color-background-warning: #fff4e6;
+  --color-background-danger: #fff5f5;
+  --color-text-primary: #212529;
+  --color-text-secondary: #495057;
+  --color-text-tertiary: #868e96;
+  --color-text-info: #1c7ed6;
+  --color-text-success: #2b8a3e;
+  --color-text-warning: #d9480f;
+  --color-text-danger: #e03131;
+  --color-border-tertiary: rgba(0,0,0,0.06);
+  --color-border-secondary: rgba(0,0,0,0.12);
+  --color-border-primary: rgba(0,0,0,0.2);
+  --color-primary: #f76707;
+  --color-primary-hover: #e8590c;
+  --color-primary-light: #ffe8cc;
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   --font-mono: 'SFMono-Regular', Consolas, monospace;
-  --border-radius-md: 8px;
-  --border-radius-lg: 12px;
-  --border-radius-xl: 16px;
+  --border-radius-sm: 6px;
+  --border-radius-md: 10px;
+  --border-radius-lg: 16px;
+  --border-radius-xl: 24px;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03);
+  --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.05), 0 4px 6px -2px rgba(0,0,0,0.03);
 }
 @media (prefers-color-scheme: dark) {
   :root {
-    --color-background-primary: #1e1e1c;
-    --color-background-secondary: #2a2a27;
-    --color-background-tertiary: #242422;
-    --color-background-info: #042c53;
-    --color-background-success: #173404;
-    --color-background-warning: #412402;
-    --color-background-danger: #501313;
-    --color-text-primary: #f0ede6;
-    --color-text-secondary: #a8a6a0;
-    --color-text-tertiary: #6e6c67;
-    --color-text-info: #85b7eb;
-    --color-text-success: #97c459;
-    --color-text-warning: #ef9f27;
-    --color-text-danger: #f09595;
-    --color-border-tertiary: rgba(255,255,255,0.12);
-    --color-border-secondary: rgba(255,255,255,0.22);
-    --color-border-primary: rgba(255,255,255,0.32);
+    --color-background-primary: #1a1b1e;
+    --color-background-secondary: #25262b;
+    --color-background-tertiary: #141517;
+    --color-background-info: #1864ab;
+    --color-background-success: #2b8a3e;
+    --color-background-warning: #d9480f;
+    --color-background-danger: #c92a2a;
+    --color-text-primary: #f8f9fa;
+    --color-text-secondary: #ced4da;
+    --color-text-tertiary: #868e96;
+    --color-text-info: #74c0fc;
+    --color-text-success: #8ce99a;
+    --color-text-warning: #ffd43b;
+    --color-text-danger: #ffa8a8;
+    --color-border-tertiary: rgba(255,255,255,0.08);
+    --color-border-secondary: rgba(255,255,255,0.15);
+    --color-border-primary: rgba(255,255,255,0.25);
   }
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%;background:var(--color-background-tertiary)}
-body{font-family:var(--font-sans);color:var(--color-text-primary)}
-code{font-family:var(--font-mono);font-size:0.9em;background:var(--color-background-secondary);padding:1px 5px;border-radius:4px}
-.app{display:flex;height:100vh;overflow:hidden}
-.sidebar{width:210px;flex-shrink:0;background:var(--color-background-secondary);border-right:0.5px solid var(--color-border-tertiary);padding:1.25rem 0;display:flex;flex-direction:column;overflow-y:auto}
-.sidebar-logo{padding:0 1.25rem 1.25rem;border-bottom:0.5px solid var(--color-border-tertiary);margin-bottom:0.75rem}
-.sidebar-logo p{font-size:13px;color:var(--color-text-secondary);margin-top:2px}
-.sidebar-logo h2{font-size:15px;font-weight:500}
-.nav-item{display:flex;align-items:center;gap:10px;padding:8px 1.25rem;font-size:14px;cursor:pointer;color:var(--color-text-secondary);transition:background 0.15s;user-select:none}
-.nav-item:hover{background:var(--color-background-primary);color:var(--color-text-primary)}
-.nav-item.active{background:var(--color-background-primary);color:var(--color-text-primary);font-weight:500;border-right:2px solid #BA7517}
-.nav-icon{width:16px;height:16px;flex-shrink:0}
-.main{flex:1;overflow-y:auto;padding:1.5rem 2rem;background:var(--color-background-tertiary)}
-.page{display:none}.page.active{display:block}
-.page-title{font-size:20px;font-weight:500;margin-bottom:1.5rem}
-.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:1.5rem}
-.stat-card{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:1rem}
-.stat-label{font-size:12px;color:var(--color-text-secondary);margin-bottom:6px}
-.stat-value{font-size:22px;font-weight:500}
-.stat-sub{font-size:12px;color:var(--color-text-secondary);margin-top:4px}
-.section-card{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:1rem 1.25rem;margin-bottom:1.25rem;overflow-x:auto}
-.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem}
-.section-title{font-size:14px;font-weight:500}
-.toolbar{display:flex;gap:8px;align-items:center;margin-bottom:1rem;flex-wrap:wrap}
-.toolbar input,.toolbar select{font-size:13px;padding:6px 10px;border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);background:var(--color-background-primary);color:var(--color-text-primary)}
-.toolbar input{min-width:190px}
-table{width:100%;border-collapse:collapse;font-size:13px}
+body{font-family:var(--font-sans);color:var(--color-text-primary);-webkit-font-smoothing:antialiased}
+code{font-family:var(--font-mono);font-size:0.85em;background:var(--color-background-secondary);padding:0.2em 0.4em;border-radius:var(--border-radius-sm);color:var(--color-primary)}
+.app{display:flex;height:100vh;overflow:hidden;background-color:var(--color-background-tertiary);background-image: radial-gradient(rgba(0, 0, 0, 0.05) 1px, transparent 1px); background-size: 20px 20px;}
+.sidebar{width:250px;flex-shrink:0;background:rgba(255, 255, 255, 0.85);backdrop-filter:blur(10px);border-right:1px solid rgba(255, 255, 255, 0.4);padding:1.5rem 0.75rem;display:flex;flex-direction:column;overflow-y:auto;box-shadow:var(--shadow-md);z-index:10}
+@media (prefers-color-scheme: dark) {
+  .app{background-color:#1a1b1e; background-image: radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px); background-size: 20px 20px;}
+  .sidebar{background:rgba(37, 38, 43, 0.85);border-right:1px solid rgba(255, 255, 255, 0.05)}
+}
+.sidebar-logo{padding:0 0.75rem 1.5rem;margin-bottom:0.5rem;display:flex;flex-direction:column;gap:4px}
+.sidebar-logo p{font-size:12px;color:var(--color-text-tertiary);font-weight:600;text-transform:uppercase;letter-spacing:0.5px;background:-webkit-linear-gradient(0deg, var(--color-primary), #e8590c);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.sidebar-logo h2{font-size:20px;font-weight:800;color:var(--color-text-primary);display:flex;align-items:center;gap:8px;letter-spacing:-0.5px}
+.sidebar-logo h2::before {content:'';display:block;width:14px;height:14px;background:linear-gradient(135deg, var(--color-primary) 0%, #d9480f 100%);border-radius:50%;box-shadow:0 2px 4px rgba(247,103,7,0.3)}
+.nav-item{display:flex;align-items:center;gap:12px;padding:12px 14px;font-size:14px;font-weight:500;cursor:pointer;color:var(--color-text-secondary);transition:all 0.2s ease;user-select:none;border-radius:var(--border-radius-md);margin-bottom:4px;border:1px solid transparent}
+.nav-item:hover{background:rgba(248, 249, 250, 0.8);color:var(--color-text-primary);transform:translateX(2px)}
+@media (prefers-color-scheme: dark) {
+  .nav-item:hover{background:rgba(37, 38, 43, 0.8)}
+}
+.nav-item.active{background:var(--color-primary-light);color:var(--color-primary);font-weight:600;box-shadow:inset 0 0 0 1px rgba(247,103,7,0.1)}
+@media (prefers-color-scheme: dark) {
+  .nav-item.active{background:rgba(247,103,7,0.15);box-shadow:inset 0 0 0 1px rgba(247,103,7,0.25)}
+}
+.nav-icon{width:18px;height:18px;flex-shrink:0;opacity:0.8;transition:transform 0.2s}
+.nav-item:hover .nav-icon{transform:scale(1.1)}
+.nav-item.active .nav-icon{opacity:1;transform:scale(1.1)}
+.main{flex:1;overflow-y:auto;padding:2.5rem 3rem;background:transparent}
+.page{display:none;animation:fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1)}.page.active{display:block}
+@keyframes fadeIn {from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.page-title{font-size:28px;font-weight:800;margin-bottom:2rem;color:var(--color-text-primary);letter-spacing:-0.5px;position:relative;display:inline-block}
+.page-title::after{content:'';position:absolute;bottom:-8px;left:0;width:40px;height:4px;background:linear-gradient(90deg, var(--color-primary), transparent);border-radius:2px}
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:1.5rem;margin-bottom:2rem}
+.stat-card{background:var(--color-background-primary);border:1px solid rgba(255,255,255,0.5);border-radius:var(--border-radius-lg);padding:1.5rem;box-shadow:var(--shadow-md);transition:all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);position:relative;overflow:hidden;backdrop-filter:blur(10px)}
+@media (prefers-color-scheme: dark) {
+  .stat-card{background:var(--color-background-secondary);border:1px solid var(--color-border-tertiary)}
+}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;background:linear-gradient(90deg, var(--color-primary-light), var(--color-primary));opacity:0;transition:opacity 0.3s}
+.stat-card:hover{transform:translateY(-4px);box-shadow:var(--shadow-lg)}
+.stat-card:hover::before{opacity:1}
+.stat-label{font-size:13px;font-weight:700;color:var(--color-text-secondary);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px}
+.stat-value{font-size:32px;font-weight:800;line-height:1.2;color:var(--color-text-primary);background:-webkit-linear-gradient(45deg, var(--color-text-primary), var(--color-text-tertiary));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.stat-sub{font-size:13px;color:var(--color-text-tertiary);margin-top:8px;font-weight:500}
+.section-card{background:var(--color-background-primary);border:1px solid rgba(255,255,255,0.5);border-radius:var(--border-radius-lg);padding:2rem;margin-bottom:1.5rem;overflow-x:auto;box-shadow:var(--shadow-md);backdrop-filter:blur(10px)}
+@media (prefers-color-scheme: dark) {
+  .section-card{background:var(--color-background-secondary);border:1px solid var(--color-border-tertiary)}
+}
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;gap:1rem;flex-wrap:wrap}
+.section-title{font-size:18px;font-weight:700;color:var(--color-text-primary);letter-spacing:-0.5px}
+.toolbar{display:flex;gap:12px;align-items:center;margin-bottom:1.5rem;flex-wrap:wrap}
+.toolbar input,.toolbar select{font-family:var(--font-sans);font-size:14px;padding:10px 14px;border:1px solid var(--color-border-secondary);border-radius:var(--border-radius-md);background:var(--color-background-primary);color:var(--color-text-primary);transition:all 0.2s;outline:none;box-shadow:var(--shadow-sm)}
+.toolbar input:focus,.toolbar select:focus{border-color:var(--color-primary);box-shadow:0 0 0 3px var(--color-primary-light), var(--shadow-sm);transform:translateY(-1px)}
+.toolbar input{min-width:260px}
+table{width:100%;border-collapse:separate;border-spacing:0;font-size:14px}
 .section-card table{min-width:620px}
 .wide-table{min-width:980px}
-th{text-align:left;padding:8px 10px;font-weight:500;font-size:12px;color:var(--color-text-secondary);border-bottom:0.5px solid var(--color-border-tertiary)}
-td{padding:9px 10px;border-bottom:0.5px solid var(--color-border-tertiary);color:var(--color-text-primary);vertical-align:middle}
-.note-cell{max-width:260px;white-space:normal;line-height:1.45}
+th{text-align:left;padding:14px 16px;font-weight:700;font-size:12px;color:var(--color-text-secondary);border-bottom:2px solid var(--color-border-secondary);text-transform:uppercase;letter-spacing:1px;background:rgba(0,0,0,0.02)}
+@media (prefers-color-scheme: dark) {
+  th{background:rgba(255,255,255,0.02)}
+}
+td{padding:14px 16px;border-bottom:1px solid var(--color-border-tertiary);color:var(--color-text-primary);vertical-align:middle;transition:background 0.2s}
+.note-cell{max-width:280px;white-space:normal;line-height:1.6}
 tr:last-child td{border-bottom:none}
-tr:hover td{background:var(--color-background-secondary)}
-.badge{display:inline-block;padding:2px 8px;border-radius:100px;font-size:11px;font-weight:500}
-.badge-available{background:#EAF3DE;color:#3B6D11}
-.badge-reserved{background:#FAEEDA;color:#854F0B}
-.badge-adopted{background:#E6F1FB;color:#185FA5}
-.badge-hold{background:#FCEBEB;color:#A32D2D}
-.badge-pending{background:#FAEEDA;color:#854F0B}
-.badge-approved{background:#EAF3DE;color:#3B6D11}
-.badge-rejected{background:#FCEBEB;color:#A32D2D}
-.badge-active{background:#EAF3DE;color:#3B6D11}
-.badge-inactive{background:#f1efe8;color:#5f5e5a}
-.btn-sm{font-size:12px;padding:4px 10px;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);background:transparent;color:var(--color-text-primary);cursor:pointer}
-.btn-sm:hover{background:var(--color-background-secondary)}
-.btn-approve{font-size:12px;padding:4px 10px;border:0.5px solid #639922;border-radius:var(--border-radius-md);background:transparent;color:#3B6D11;cursor:pointer}
-.btn-approve:hover{background:#EAF3DE}
-.btn-reject{font-size:12px;padding:4px 10px;border:0.5px solid #A32D2D;border-radius:var(--border-radius-md);background:transparent;color:#A32D2D;cursor:pointer}
-.btn-reject:hover{background:#FCEBEB}
-.btn-primary{font-size:13px;padding:7px 14px;border:0.5px solid #BA7517;border-radius:var(--border-radius-md);background:transparent;color:#854F0B;cursor:pointer;font-weight:500}
-.btn-primary:hover{background:#FAEEDA}
-.action-row{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
-.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}
+tr:hover td{background:var(--color-background-tertiary)}
+.badge{display:inline-flex;align-items:center;padding:5px 12px;border-radius:var(--border-radius-xl);font-size:12px;font-weight:700;line-height:1;letter-spacing:0.5px}
+.badge-available{background:var(--color-background-success);color:var(--color-text-success);border:1px solid rgba(43,138,62,0.2)}
+.badge-reserved{background:var(--color-background-warning);color:var(--color-text-warning);border:1px solid rgba(217,72,15,0.2)}
+.badge-adopted{background:var(--color-background-info);color:var(--color-text-info);border:1px solid rgba(28,126,214,0.2)}
+.badge-hold{background:var(--color-background-danger);color:var(--color-text-danger);border:1px solid rgba(224,49,49,0.2)}
+.badge-pending{background:var(--color-background-warning);color:var(--color-text-warning);border:1px solid rgba(217,72,15,0.2)}
+.badge-approved{background:var(--color-background-success);color:var(--color-text-success);border:1px solid rgba(43,138,62,0.2)}
+.badge-rejected{background:var(--color-background-danger);color:var(--color-text-danger);border:1px solid rgba(224,49,49,0.2)}
+.badge-active{background:var(--color-background-success);color:var(--color-text-success);border:1px solid rgba(43,138,62,0.2)}
+.badge-inactive{background:var(--color-background-tertiary);color:var(--color-text-secondary);border:1px solid rgba(134,142,150,0.2)}
+.btn-sm{font-family:var(--font-sans);font-weight:600;font-size:13px;padding:8px 14px;border:1px solid var(--color-border-secondary);border-radius:var(--border-radius-md);background:var(--color-background-primary);color:var(--color-text-primary);cursor:pointer;transition:all 0.2s;box-shadow:var(--shadow-sm)}
+.btn-sm:hover{background:var(--color-background-secondary);border-color:var(--color-border-primary);transform:translateY(-1px);box-shadow:var(--shadow-md)}
+.btn-approve{font-family:var(--font-sans);font-weight:600;font-size:13px;padding:8px 14px;border:1px solid rgba(43,138,62,0.5);border-radius:var(--border-radius-md);background:var(--color-background-success);color:var(--color-text-success);cursor:pointer;transition:all 0.2s;box-shadow:var(--shadow-sm)}
+.btn-approve:hover{filter:brightness(0.95);transform:translateY(-1px);box-shadow:var(--shadow-md)}
+.btn-reject{font-family:var(--font-sans);font-weight:600;font-size:13px;padding:8px 14px;border:1px solid rgba(224,49,49,0.5);border-radius:var(--border-radius-md);background:var(--color-background-danger);color:var(--color-text-danger);cursor:pointer;transition:all 0.2s;box-shadow:var(--shadow-sm)}
+.btn-reject:hover{filter:brightness(0.95);transform:translateY(-1px);box-shadow:var(--shadow-md)}
+.btn-primary{font-family:var(--font-sans);font-weight:700;font-size:14px;padding:10px 20px;border:none;border-radius:var(--border-radius-md);background:linear-gradient(135deg, var(--color-primary) 0%, #d9480f 100%);color:#fff;cursor:pointer;transition:all 0.2s;box-shadow:0 4px 12px rgba(247,103,7,0.25)}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 6px 16px rgba(247,103,7,0.35);filter:brightness(1.05)}
+.btn-primary:active{transform:translateY(0);box-shadow:0 2px 8px rgba(247,103,7,0.25)}
+.action-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 16px}
 .form-grid .form-group-wide{grid-column:1/-1}
-.two-col{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
-.analytics-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem}
+.analytics-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1.5rem}
 .analytics-wide{grid-column:1/-1}
-.bonus-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem}
+.bonus-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1.5rem}
 .bonus-wide{grid-column:1/-1}
-.muted-text{color:var(--color-text-secondary);font-size:12px;line-height:1.5}
-.sql-block{font-family:var(--font-mono);font-size:12px;white-space:pre-wrap;line-height:1.5;background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:10px 12px;color:var(--color-text-primary)}
-.activity-item{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:0.5px solid var(--color-border-tertiary)}
-.activity-item:last-child{border-bottom:none}
-.activity-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:5px}
-.dot-green{background:#639922}.dot-amber{background:#BA7517}.dot-blue{background:#378ADD}
-.activity-text{font-size:13px;line-height:1.5}
-.activity-time{font-size:11px;color:var(--color-text-secondary);margin-top:2px}
-.avatar{width:32px;height:32px;border-radius:50%;background:#FAEEDA;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:500;color:#854F0B;flex-shrink:0}
+.muted-text{color:var(--color-text-tertiary);font-size:12px;line-height:1.5;margin-top:2px}
+.sql-block{font-family:var(--font-mono);font-size:13px;white-space:pre-wrap;line-height:1.6;background:#1e1e1e;border-radius:var(--border-radius-md);padding:12px 16px;color:#d4d4d4;overflow-x:auto}
+.activity-item{display:flex;align-items:flex-start;gap:12px;padding:12px 0;border-bottom:1px solid var(--color-border-tertiary)}
+.activity-item:last-child{border-bottom:none;padding-bottom:0}
+.activity-item:first-child{padding-top:0}
+.activity-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;margin-top:6px;box-shadow:0 0 0 3px var(--color-background-primary)}
+.dot-green{background:var(--color-text-success)}.dot-amber{background:var(--color-text-warning)}.dot-blue{background:var(--color-text-info)}
+.activity-text{font-size:14px;line-height:1.5;color:var(--color-text-primary)}
+.activity-time{font-size:12px;color:var(--color-text-tertiary);margin-top:4px;font-weight:500}
+.avatar{width:36px;height:36px;border-radius:50%;background:var(--color-primary-light);display:inline-flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;color:var(--color-primary);flex-shrink:0}
 
 /* ── Overlay: fixed fullscreen dim layer ── */
 .overlay{
   display:none;
   position:fixed;
   inset:0;
-  background:rgba(0,0,0,0.45);
+  background:rgba(0,0,0,0.5);
+  backdrop-filter:blur(4px);
   z-index:100;
   align-items:center;
   justify-content:center;
+  padding:2rem;
 }
-.overlay.open{display:flex}
+.overlay.open{display:flex;animation:fadeIn 0.2s ease}
 
 /* ── Modal box sits on top of the dim layer ── */
 .modal-box{
   background:var(--color-background-primary);
-  border:0.5px solid var(--color-border-secondary);
+  border:1px solid var(--color-border-secondary);
   border-radius:var(--border-radius-lg);
-  padding:1.5rem;
-  width:420px;
-  max-height:85vh;
+  padding:2rem;
+  width:460px;
+  max-height:90vh;
   overflow-y:auto;
   position:relative;
-  box-shadow:0 8px 32px rgba(0,0,0,0.18);
+  box-shadow:var(--shadow-lg);
 }
-.modal-box-wide{width:620px}
-.modal-close{position:absolute;right:1rem;top:1rem;cursor:pointer;font-size:16px;color:var(--color-text-secondary);background:none;border:none}
-.modal-title{font-size:16px;font-weight:500;margin-bottom:1.25rem}
-.field-row{display:flex;justify-content:space-between;align-items:flex-start;padding:7px 0;border-bottom:0.5px solid var(--color-border-tertiary);font-size:13px}
+.modal-box-wide{width:680px}
+.modal-close{position:absolute;right:1.5rem;top:1.5rem;cursor:pointer;font-size:20px;line-height:1;color:var(--color-text-tertiary);background:none;border:none;transition:color 0.2s}
+.modal-close:hover{color:var(--color-text-primary)}
+.modal-title{font-size:20px;font-weight:700;margin-bottom:1.5rem;color:var(--color-text-primary)}
+.field-row{display:flex;justify-content:space-between;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--color-border-tertiary);font-size:14px}
 .field-row:last-child{border-bottom:none}
-.field-label{color:var(--color-text-secondary);flex-shrink:0;margin-right:12px}
-.form-group{margin-bottom:1rem}
-.form-label{font-size:13px;color:var(--color-text-secondary);margin-bottom:5px;display:block}
-.form-control{width:100%;font-size:13px;padding:8px 10px;border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);background:var(--color-background-primary);color:var(--color-text-primary)}
-.form-control:focus{outline:none;border-color:var(--color-border-primary)}
-textarea.form-control{resize:vertical;min-height:80px;line-height:1.5}
-.form-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:1.25rem;padding-top:1rem;border-top:0.5px solid var(--color-border-tertiary)}
-.hint-box{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:10px 12px;font-size:12px;color:var(--color-text-secondary);margin-bottom:1rem}
-.review-summary{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:10px 12px;margin-bottom:1rem;font-size:13px}
+.field-label{color:var(--color-text-secondary);flex-shrink:0;margin-right:16px;font-weight:500}
+.form-group{margin-bottom:1.25rem}
+.form-label{font-size:13px;font-weight:600;color:var(--color-text-primary);margin-bottom:6px;display:block}
+.form-control{font-family:var(--font-sans);width:100%;font-size:14px;padding:10px 12px;border:1px solid var(--color-border-secondary);border-radius:var(--border-radius-sm);background:var(--color-background-primary);color:var(--color-text-primary);transition:all 0.2s;outline:none}
+.form-control:focus{border-color:var(--color-primary);box-shadow:0 0 0 3px var(--color-primary-light)}
+textarea.form-control{resize:vertical;min-height:90px;line-height:1.5}
+.form-actions{display:flex;justify-content:flex-end;gap:12px;margin-top:2rem;padding-top:1.5rem;border-top:1px solid var(--color-border-tertiary)}
+.hint-box{background:var(--color-background-info);border:1px solid rgba(28,126,214,0.2);border-radius:var(--border-radius-md);padding:12px 16px;font-size:13px;line-height:1.5;color:var(--color-text-info);margin-bottom:1.25rem}
+.review-summary{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:16px;margin-bottom:1.5rem;font-size:14px;line-height:1.6}
 
 /* ── Toast ── */
 .toast{
   position:fixed;
-  bottom:1.5rem;
-  right:1.5rem;
+  bottom:2rem;
+  right:2rem;
   background:var(--color-background-primary);
-  border:0.5px solid var(--color-border-secondary);
+  border:1px solid var(--color-border-secondary);
   border-radius:var(--border-radius-md);
-  padding:10px 16px;
-  font-size:13px;
+  padding:12px 20px;
+  font-size:14px;
+  font-weight:500;
   z-index:200;
   display:none;
-  box-shadow:0 4px 16px rgba(0,0,0,0.12);
-  max-width:300px;
+  box-shadow:var(--shadow-lg);
+  max-width:320px;
+  animation:slideIn 0.3s ease;
 }
-.toast.show{display:block}
-.toast-success{border-left:3px solid #639922;color:#3B6D11}
-.toast-info{border-left:3px solid #378ADD;color:#185FA5}
-.toast-error{border-left:3px solid #A32D2D;color:#A32D2D}
+@keyframes slideIn {from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}
+.toast.show{display:flex;align-items:center;gap:12px}
+.toast::before{content:'';display:block;width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.toast-success::before{background:var(--color-text-success)}
+.toast-info::before{background:var(--color-text-info)}
+.toast-error::before{background:var(--color-text-danger)}
 @media (max-width: 900px) {
   .stat-grid{grid-template-columns:repeat(2,1fr)}
   .two-col,.analytics-grid,.bonus-grid{grid-template-columns:1fr}
   .analytics-wide,.bonus-wide{grid-column:auto}
+  .sidebar{width:200px}
+}
+@media (max-width: 600px) {
+  .app{flex-direction:column}
+  .sidebar{width:100%;height:auto;border-right:none;border-bottom:1px solid var(--color-border-tertiary);padding:1rem}
+  .main{padding:1rem}
 }
 </style>
 </head>
@@ -243,12 +296,26 @@ textarea.form-control{resize:vertical;min-height:80px;line-height:1.5}
 
   <!-- Dashboard -->
   <div id="page-dashboard" class="page active">
-    <div class="page-title">Dashboard</div>
+    <div class="page-title" style="display:flex; align-items:center; gap:12px;"><div style="width:40px;height:40px;background:var(--color-primary-light);border-radius:10px;display:flex;align-items:center;justify-content:center;color:var(--color-primary);"><svg width="24" height="24" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg></div>Dashboard</div>
+
+    <div class="hero-banner" style="background:linear-gradient(135deg, var(--color-primary) 0%, #d9480f 100%); border-radius:var(--border-radius-lg); padding:2rem; margin-bottom:2rem; color:white; display:flex; align-items:center; justify-content:space-between; box-shadow:var(--shadow-md); position:relative; overflow:hidden;">
+      <div style="z-index:2; max-width:600px;">
+        <h2 style="font-size:28px; font-weight:800; margin-bottom:0.5rem; letter-spacing:-0.5px;">Welcome to PawTrack! 🐾</h2>
+        <p style="font-size:15px; opacity:0.9; line-height:1.5;">Manage shelters, track adoptions, and help more pets find their forever homes. Check your dashboard below for the latest activity.</p>
+      </div>
+      <div style="font-size: 72px; line-height: 1; display:flex; gap: 15px; position:relative; z-index:2;">
+        <div style="transform: rotate(-15deg); filter: drop-shadow(0 10px 15px rgba(0,0,0,0.2));">🐶</div>
+        <div style="transform: rotate(10deg) translateY(15px); filter: drop-shadow(0 10px 15px rgba(0,0,0,0.2));">🐱</div>
+        <div style="transform: rotate(20deg) translateY(-10px); filter: drop-shadow(0 10px 15px rgba(0,0,0,0.2));">🐰</div>
+      </div>
+      <div style="position:absolute; top:-50%; right:-10%; width:300px; height:300px; background:radial-gradient(circle, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 70%); border-radius:50%; z-index:1;"></div>
+    </div>
+
     <div class="stat-grid">
-      <div class="stat-card"><div class="stat-label">Total pets</div><div class="stat-value" id="dash-total-pets">--</div><div class="stat-sub" id="dash-shelter-count">loading shelters</div></div>
-      <div class="stat-card"><div class="stat-label">Available now</div><div class="stat-value" style="color:#3B6D11" id="dash-available-count">--</div><div class="stat-sub">ready to adopt</div></div>
-      <div class="stat-card"><div class="stat-label">Pending review</div><div class="stat-value" style="color:#854F0B" id="dash-pending-count">--</div><div class="stat-sub">applications</div></div>
-      <div class="stat-card"><div class="stat-label">This month</div><div class="stat-value" style="color:#185FA5" id="dash-monthly-adoptions">--</div><div class="stat-sub">successful adoptions</div></div>
+      <div class="stat-card"><div class="stat-label" style="display:flex;align-items:center;justify-content:space-between"><span>Total pets</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity:0.5"><circle cx="12" cy="12" r="10"></circle><path d="M8 14s1.5 2 4 2 4-2 4-2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line></svg></div><div class="stat-value" id="dash-total-pets">--</div><div class="stat-sub" id="dash-shelter-count">loading shelters</div></div>
+      <div class="stat-card"><div class="stat-label" style="display:flex;align-items:center;justify-content:space-between;color:#3B6D11"><span>Available now</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity:0.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg></div><div class="stat-value" style="color:#3B6D11" id="dash-available-count">--</div><div class="stat-sub">ready to adopt</div></div>
+      <div class="stat-card"><div class="stat-label" style="display:flex;align-items:center;justify-content:space-between;color:#854F0B"><span>Pending review</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity:0.5"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg></div><div class="stat-value" style="color:#854F0B" id="dash-pending-count">--</div><div class="stat-sub">applications</div></div>
+      <div class="stat-card"><div class="stat-label" style="display:flex;align-items:center;justify-content:space-between;color:#185FA5"><span>This month adoptions</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity:0.5"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path></svg></div><div class="stat-value" style="color:#185FA5" id="dash-monthly-adoptions">--</div><div class="stat-sub">successful adoptions</div></div>
     </div>
     <div class="two-col">
       <div class="section-card">
@@ -268,7 +335,7 @@ textarea.form-control{resize:vertical;min-height:80px;line-height:1.5}
 
   <!-- Shelters -->
   <div id="page-shelters" class="page">
-    <div class="page-title">Shelters</div>
+    <div class="page-title" style="display:flex; align-items:center; gap:12px;">Shelters</div>
     <div class="section-card">
       <div class="section-header"><span class="section-title">Shelter directory</span><button class="btn-primary" onclick="openCrudModal('shelters','create')">+ New shelter</button></div>
       <table class="wide-table"><thead><tr><th>ID</th><th>Name</th><th>Address</th><th>Phone</th><th>Capacity</th><th>Current pets</th><th>Volunteers</th><th>Occupancy</th><th>Actions</th></tr></thead>
@@ -281,7 +348,7 @@ textarea.form-control{resize:vertical;min-height:80px;line-height:1.5}
 
   <!-- Pets -->
   <div id="page-pets" class="page">
-    <div class="page-title">Pet management</div>
+    <div class="page-title" style="display:flex; align-items:center; gap:12px;">Pet management</div>
     <div class="section-card">
       <div class="section-header"><span class="section-title">Pet directory</span><button class="btn-primary" onclick="openCrudModal('pets','create')">+ New pet</button></div>
       <div class="toolbar">
@@ -304,7 +371,7 @@ textarea.form-control{resize:vertical;min-height:80px;line-height:1.5}
 
   <!-- Applicants -->
   <div id="page-applicants" class="page">
-    <div class="page-title">Applicants</div>
+    <div class="page-title" style="display:flex; align-items:center; gap:12px;">Applicants</div>
     <div class="section-card">
       <div class="section-header"><span class="section-title">Applicant directory</span><button class="btn-primary" onclick="openCrudModal('applicants','create')">+ New applicant</button></div>
       <div class="toolbar">
@@ -325,7 +392,7 @@ textarea.form-control{resize:vertical;min-height:80px;line-height:1.5}
 
   <!-- Applications -->
   <div id="page-applications" class="page">
-    <div class="page-title">Adoption applications</div>
+    <div class="page-title" style="display:flex; align-items:center; gap:12px;">Adoption applications</div>
     <div class="section-card">
       <div class="section-header">
         <span class="section-title">All applications</span>
@@ -346,7 +413,7 @@ textarea.form-control{resize:vertical;min-height:80px;line-height:1.5}
 
   <!-- Adoptions -->
   <div id="page-adoptions" class="page">
-    <div class="page-title">Adoption records &amp; follow-ups</div>
+    <div class="page-title" style="display:flex; align-items:center; gap:12px;">Adoption records &amp; follow-ups</div>
     <div class="section-card">
       <div class="section-header"><span class="section-title">Adoption records</span></div>
       <table class="wide-table"><thead><tr><th>ID</th><th>Application</th><th>Applicant</th><th>Pet</th><th>Date</th><th>Final fee</th><th>Handover note</th><th>Follow-ups</th></tr></thead>
@@ -370,16 +437,22 @@ textarea.form-control{resize:vertical;min-height:80px;line-height:1.5}
 
   <!-- Medical -->
   <div id="page-medical" class="page">
-    <div class="page-title">Medical records</div>
-    <div class="two-col">
+    <div class="page-title" style="display:flex; align-items:center; gap:12px;">Medical records</div>
+    <div class="medical-grid" style="display:grid; grid-template-columns:1fr; gap:1.5rem">
       <div class="section-card">
-        <div class="section-header"><span class="section-title">Medical visits</span><button class="btn-primary" onclick="openCrudModal('medical-records','create')">+ New visit</button></div>
+        <div class="section-header"><span class="section-title" style="display:flex;align-items:center;gap:8px">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-info)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>
+          Medical visits
+        </span><button class="btn-primary" onclick="openCrudModal('medical-records','create')">+ New visit</button></div>
         <table class="wide-table"><thead><tr><th>ID</th><th>Pet</th><th>Visit date</th><th>Type</th><th>Diagnosis</th><th>Treatment</th><th>Vet</th><th>Notes</th><th>Actions</th></tr></thead><tbody id="medical-tbody">
           <tr><td colspan="9" style="color:var(--color-text-secondary)">Loading medical records...</td></tr>
         </tbody></table>
       </div>
       <div class="section-card">
-        <div class="section-header"><span class="section-title">Vaccinations</span><button class="btn-primary" onclick="openCrudModal('vaccinations','create')">+ New vaccine</button></div>
+        <div class="section-header"><span class="section-title" style="display:flex;align-items:center;gap:8px">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-success)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+          Vaccinations
+        </span><button class="btn-primary" onclick="openCrudModal('vaccinations','create')">+ New vaccine</button></div>
         <table class="wide-table"><thead><tr><th>ID</th><th>Pet</th><th>Vaccine</th><th>Dose</th><th>Vaccination date</th><th>Due date</th><th>Vet</th><th>Notes</th><th>Actions</th></tr></thead><tbody id="vaccination-tbody">
           <tr><td colspan="9" style="color:var(--color-text-secondary)">Loading vaccinations...</td></tr>
         </tbody></table>
@@ -389,7 +462,7 @@ textarea.form-control{resize:vertical;min-height:80px;line-height:1.5}
 
   <!-- Volunteers -->
   <div id="page-volunteers" class="page">
-    <div class="page-title">Volunteers &amp; care assignments</div>
+    <div class="page-title" style="display:flex; align-items:center; gap:12px;">Volunteers &amp; care assignments</div>
     <div class="section-card">
       <div class="section-header"><span class="section-title">Active volunteers</span><button class="btn-primary" onclick="openCrudModal('volunteers','create')">+ New volunteer</button></div>
       <table class="wide-table"><thead><tr><th>ID</th><th>Volunteer</th><th>Phone</th><th>Email</th><th>Shelter</th><th>Joined</th><th>Availability</th><th>Status</th><th>Assigned pets</th><th>Actions</th></tr></thead><tbody id="volunteer-tbody">
@@ -406,10 +479,11 @@ textarea.form-control{resize:vertical;min-height:80px;line-height:1.5}
 
   <!-- Analytics -->
   <div id="page-analytics" class="page">
-    <div class="page-title">Analytics</div>
+    <div class="page-title" style="display:flex; align-items:center; gap:12px;">Analytics</div>
     <div class="analytics-grid">
       <div class="section-card">
         <div class="section-header"><span class="section-title">Shelter occupancy</span></div>
+        <div style="position:relative; height:220px; margin-bottom:1.5rem;"><canvas id="chart-occupancy"></canvas></div>
         <table><thead><tr><th>Shelter</th><th>Pets</th><th>Capacity</th><th>Rate</th></tr></thead><tbody id="analytics-occupancy-tbody">
           <tr><td colspan="4" style="color:var(--color-text-secondary)">Loading occupancy...</td></tr>
         </tbody></table>
@@ -422,6 +496,7 @@ textarea.form-control{resize:vertical;min-height:80px;line-height:1.5}
       </div>
       <div class="section-card">
         <div class="section-header"><span class="section-title">Adoption demand by species</span></div>
+        <div style="position:relative; height:220px; margin-bottom:1.5rem;"><canvas id="chart-species"></canvas></div>
         <table><thead><tr><th>Species</th><th>Applications</th><th>Adoptions</th><th>Success</th></tr></thead><tbody id="analytics-species-tbody">
           <tr><td colspan="4" style="color:var(--color-text-secondary)">Loading demand...</td></tr>
         </tbody></table>
@@ -449,7 +524,7 @@ textarea.form-control{resize:vertical;min-height:80px;line-height:1.5}
 
   <!-- LLM Bonus -->
   <div id="page-llm" class="page">
-    <div class="page-title">LLM + Database Bonus</div>
+    <div class="page-title" style="display:flex; align-items:center; gap:12px;">LLM + Database Bonus</div>
     <div class="stat-grid">
       <div class="stat-card"><div class="stat-label">Architecture refinements</div><div class="stat-value" id="llm-refinement-count">--</div><div class="stat-sub">LLM-assisted improvements</div></div>
       <div class="stat-card"><div class="stat-label">Integrity checks</div><div class="stat-value" id="llm-check-count">--</div><div class="stat-sub">schema and data audits</div></div>
@@ -661,6 +736,7 @@ textarea.form-control{resize:vertical;min-height:80px;line-height:1.5}
 <!-- ── Toast ── -->
 <div class="toast" id="toast"></div>
 
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 const API_BASE = (() => {
   if (window.PAWTRACK_API_BASE) return window.PAWTRACK_API_BASE;
@@ -1344,7 +1420,10 @@ function renderShelters() {
       <td>${actionButtons('shelters', s.shelterId)}</td>
     </tr>`
   );
+
+
 }
+
 
 function filterApplicants() {
   const q = document.getElementById('applicant-search').value.toLowerCase();
@@ -1374,7 +1453,10 @@ function renderApplicants(data) {
       <td>${actionButtons('applicants', a.applicantId)}</td>
     </tr>`
   );
+
+
 }
+
 
 function renderAdoptions() {
   document.getElementById('adoption-record-tbody').innerHTML = renderTableRows(
@@ -1407,7 +1489,10 @@ function renderAdoptions() {
       <td>${actionButtons('follow-ups', f.followupId)}</td>
     </tr>`
   );
+
+
 }
+
 
 function populateSpeciesFilter() {
   const sel = document.getElementById('pet-species-filter');
@@ -1419,7 +1504,13 @@ function populateSpeciesFilter() {
 
 function renderPets(data) {
   const tb = document.getElementById('pet-tbody');
-  if (!data.length) { tb.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--color-text-secondary)">No pets found</td></tr>'; return; }
+  if (!data.length) { tb.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:3rem 1rem;">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.4; margin-bottom:12px; color:var(--color-primary)">
+          <circle cx="12" cy="12" r="10"></circle><path d="M16 16s-1.5-2-4-2-4 2-4 2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line>
+        </svg>
+        <div style="font-size:15px;font-weight:600;color:var(--color-text-secondary);margin-bottom:4px">No pets</div>
+        <div style="font-size:13px;color:var(--color-text-tertiary)">We couldn\'t find any pets matching your criteria.</div>
+      </td></tr>`; return; }
   tb.innerHTML = data.map(p => `<tr>
     <td style="color:var(--color-text-secondary)">${escapeHtml(p.id)}</td>
     <td style="font-weight:500">${escapeHtml(p.name)}</td>
@@ -1460,7 +1551,13 @@ function openPetDetailById(id) {
 
 function renderApps(data) {
   const tb = document.getElementById('app-tbody');
-  if (!data.length) { tb.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--color-text-secondary)">No applications found</td></tr>'; return; }
+  if (!data.length) { tb.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:3rem 1rem;">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.4; margin-bottom:12px; color:var(--color-primary)">
+          <circle cx="12" cy="12" r="10"></circle><path d="M16 16s-1.5-2-4-2-4 2-4 2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line>
+        </svg>
+        <div style="font-size:15px;font-weight:600;color:var(--color-text-secondary);margin-bottom:4px">No applications</div>
+        <div style="font-size:13px;color:var(--color-text-tertiary)">We couldn\'t find any applications matching your criteria.</div>
+      </td></tr>`; return; }
   tb.innerHTML = data.map(a => {
     const gi = apps.indexOf(a);
     const approvalLocked = a.status === 'Pending' && approvedApplicationsForPet(a.petId, a.applicationId).length > 0;
@@ -1665,7 +1762,13 @@ function renderMedical() {
     <td>${escapeHtml(r.vet)}</td>
     <td class="note-cell">${escapeHtml(r.notes)}</td>
     <td>${actionButtons('medical-records', r.recordId)}</td>
-  </tr>`).join('') : '<tr><td colspan="9" style="text-align:center;padding:2rem;color:var(--color-text-secondary)">No medical records found</td></tr>';
+  </tr>`).join('') : `<tr><td colspan="9" style="text-align:center;padding:3rem 1rem;">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.4; margin-bottom:12px; color:var(--color-primary)">
+          <circle cx="12" cy="12" r="10"></circle><path d="M16 16s-1.5-2-4-2-4 2-4 2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line>
+        </svg>
+        <div style="font-size:15px;font-weight:600;color:var(--color-text-secondary);margin-bottom:4px">No medical records</div>
+        <div style="font-size:13px;color:var(--color-text-tertiary)">We couldn\'t find any medical records matching your criteria.</div>
+      </td></tr>`;
 
   const vaccTb = document.getElementById('vaccination-tbody');
   vaccTb.innerHTML = vaccinations.length ? vaccinations.map(v => `<tr>
@@ -1678,7 +1781,13 @@ function renderMedical() {
     <td>${escapeHtml(v.vet)}</td>
     <td class="note-cell">${escapeHtml(v.notes)}</td>
     <td>${actionButtons('vaccinations', v.vaccinationId)}</td>
-  </tr>`).join('') : '<tr><td colspan="9" style="text-align:center;padding:2rem;color:var(--color-text-secondary)">No vaccinations found</td></tr>';
+  </tr>`).join('') : `<tr><td colspan="9" style="text-align:center;padding:3rem 1rem;">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.4; margin-bottom:12px; color:var(--color-primary)">
+          <circle cx="12" cy="12" r="10"></circle><path d="M16 16s-1.5-2-4-2-4 2-4 2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line>
+        </svg>
+        <div style="font-size:15px;font-weight:600;color:var(--color-text-secondary);margin-bottom:4px">No vaccinations</div>
+        <div style="font-size:13px;color:var(--color-text-tertiary)">We couldn\'t find any vaccinations matching your criteria.</div>
+      </td></tr>`;
 }
 
 function dueDateStyle(dateText) {
@@ -1706,7 +1815,13 @@ function renderVolunteers() {
     <td>${statusBadge(v.status)}</td>
     <td>${escapeHtml(v.assignedPets)}</td>
     <td>${actionButtons('volunteers', v.volunteerId)}</td>
-  </tr>`).join('') : '<tr><td colspan="10" style="text-align:center;padding:2rem;color:var(--color-text-secondary)">No volunteers found</td></tr>';
+  </tr>`).join('') : `<tr><td colspan="10" style="text-align:center;padding:3rem 1rem;">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.4; margin-bottom:12px; color:var(--color-primary)">
+          <circle cx="12" cy="12" r="10"></circle><path d="M16 16s-1.5-2-4-2-4 2-4 2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line>
+        </svg>
+        <div style="font-size:15px;font-weight:600;color:var(--color-text-secondary);margin-bottom:4px">No volunteers</div>
+        <div style="font-size:13px;color:var(--color-text-tertiary)">We couldn\'t find any volunteers matching your criteria.</div>
+      </td></tr>`;
 
   const careTb = document.getElementById('care-tbody');
   careTb.innerHTML = careAssignments.length ? careAssignments.map(c => `<tr>
@@ -1719,7 +1834,13 @@ function renderVolunteers() {
     <td>${statusBadge(c.status)}</td>
     <td class="note-cell">${escapeHtml(c.notes)}</td>
     <td>${actionButtons('care-assignments', c.assignmentId)}</td>
-  </tr>`).join('') : '<tr><td colspan="9" style="text-align:center;padding:2rem;color:var(--color-text-secondary)">No care assignments found</td></tr>';
+  </tr>`).join('') : `<tr><td colspan="9" style="text-align:center;padding:3rem 1rem;">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.4; margin-bottom:12px; color:var(--color-primary)">
+          <circle cx="12" cy="12" r="10"></circle><path d="M16 16s-1.5-2-4-2-4 2-4 2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line>
+        </svg>
+        <div style="font-size:15px;font-weight:600;color:var(--color-text-secondary);margin-bottom:4px">No care assignments</div>
+        <div style="font-size:13px;color:var(--color-text-tertiary)">We couldn\'t find any care assignments matching your criteria.</div>
+      </td></tr>`;
 }
 
 function renderAnalytics() {
@@ -1790,12 +1911,59 @@ function renderAnalytics() {
       <td>${escapeHtml(row.cancelledTasks)}</td>
     </tr>`
   );
+
+  if (window.Chart && data) {
+    if (window.occupancyChart) window.occupancyChart.destroy();
+    if (window.speciesChart) window.speciesChart.destroy();
+
+    const occCtx = document.getElementById("chart-occupancy");
+    if (occCtx && data.occupancy) {
+      window.occupancyChart = new Chart(occCtx, {
+        type: "bar",
+        data: {
+          labels: data.occupancy.map(o => o.shelter),
+          datasets: [
+            { label: "Current Pets", data: data.occupancy.map(o => o.currentPetCount), backgroundColor: "#f76707", borderRadius: 4 },
+            { label: "Capacity", data: data.occupancy.map(o => o.capacity), backgroundColor: "#e2e8f0", borderRadius: 4 }
+          ]
+        },
+        options: { maintainAspectRatio: false, responsive: true, plugins: { legend: { position: "bottom" } }, scales: { y: { beginAtZero: true } } }
+      });
+    }
+
+    const spCtx = document.getElementById("chart-species");
+    if (spCtx && data.speciesDemand) {
+      window.speciesChart = new Chart(spCtx, {
+        type: "doughnut",
+        data: {
+          labels: data.speciesDemand.map(s => s.species),
+          datasets: [{
+            data: data.speciesDemand.map(s => s.totalApplications),
+            backgroundColor: ["#f76707", "#1c7ed6", "#2b8a3e", "#fab005", "#7950f2"],
+            borderWidth: 0
+          }]
+        },
+        options: { maintainAspectRatio: false, responsive: true, plugins: { legend: { position: "right" } }, cutout: "65%" }
+      });
+    }
+  }
+
+
 }
+
 
 function renderTableRows(rows, colspan, renderRow) {
   return rows?.length
     ? rows.map(renderRow).join('')
-    : `<tr><td colspan="${colspan}" style="text-align:center;padding:2rem;color:var(--color-text-secondary)">No data found</td></tr>`;
+    : `<tr><td colspan="${colspan}" style="text-align:center;padding:3rem 1rem;">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.4; margin-bottom:12px; color:var(--color-primary)">
+          <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+          <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+          <line x1="12" y1="22.08" x2="12" y2="12"></line>
+        </svg>
+        <div style="font-size:15px;font-weight:600;color:var(--color-text-secondary);margin-bottom:4px">No records found</div>
+        <div style="font-size:13px;color:var(--color-text-tertiary)">It looks like there is no data to display here at the moment.</div>
+      </td></tr>`;
 }
 
 function formatPercent(value) {
@@ -1873,7 +2041,10 @@ function renderLlmBonus() {
       <td>${escapeHtml(row.description)}</td>
     </tr>`
   );
+
+
 }
+
 
 async function submitLlmPrompt() {
   const input = document.getElementById('llm-prompt-input');

@@ -103,10 +103,15 @@ class ApiError(Exception):
 
 
 def connect() -> sqlite3.Connection:
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(DB_PATH, timeout=30)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
     return conn
+
+
+def begin_write(conn: sqlite3.Connection) -> None:
+    """Serialize write operations so validation and mutation stay atomic."""
+    conn.execute("BEGIN IMMEDIATE")
 
 
 def database_is_ready() -> bool:
@@ -1215,6 +1220,47 @@ def fetch_integrity_audit(conn: sqlite3.Connection) -> list[dict]:
             "refinement": "CRUD validation enforces date order for pet intake, medical visits, vaccinations, follow-ups, and care assignments.",
         },
         {
+            "id": "application_before_pet_intake",
+            "title": "Application cannot predate pet intake",
+            "severity": "high",
+            "llmRationale": "Applications for a pet that has not yet entered the shelter create an invalid operational timeline.",
+            "sql": """
+                SELECT a.application_id, a.pet_id, a.application_date, p.intake_date
+                FROM ADOPTION_APPLICATION a
+                JOIN PET p ON a.pet_id = p.pet_id
+                WHERE date(a.application_date) < date(p.intake_date)
+            """,
+            "refinement": "Application creation now rejects pets whose intake date is later than the application date, and pet intake edits cannot move past existing activity.",
+        },
+        {
+            "id": "cross_shelter_care_assignment",
+            "title": "Care assignments must stay within one shelter",
+            "severity": "high",
+            "llmRationale": "Volunteers and pets each belong to exactly one shelter, so cross-shelter care assignments indicate broken relationship semantics.",
+            "sql": """
+                SELECT c.assignment_id, c.volunteer_id, v.shelter_id AS volunteer_shelter_id, c.pet_id, p.shelter_id AS pet_shelter_id
+                FROM CARE_ASSIGNMENT c
+                JOIN VOLUNTEER v ON c.volunteer_id = v.volunteer_id
+                JOIN PET p ON c.pet_id = p.pet_id
+                WHERE v.shelter_id != p.shelter_id
+            """,
+            "refinement": "Care assignment creation now requires the volunteer and pet to belong to the same shelter, and shelter edits cannot retroactively break existing assignments.",
+        },
+        {
+            "id": "care_assignment_before_volunteer_join",
+            "title": "Care assignment cannot predate volunteer join date",
+            "severity": "medium",
+            "llmRationale": "Assignments before a volunteer officially joins the shelter are timeline anomalies.",
+            "sql": """
+                SELECT c.assignment_id, c.assignment_date, v.volunteer_id, v.join_date
+                FROM CARE_ASSIGNMENT c
+                JOIN VOLUNTEER v ON c.volunteer_id = v.volunteer_id
+                WHERE v.join_date IS NOT NULL
+                  AND date(c.assignment_date) < date(v.join_date)
+            """,
+            "refinement": "Care assignment validation now checks volunteer join date, and volunteer join-date edits cannot move later than existing assignments.",
+        },
+        {
             "id": "reserved_without_pending_application",
             "title": "Reserved pet must have a pending application",
             "severity": "medium",
@@ -1290,6 +1336,33 @@ def fetch_integrity_audit(conn: sqlite3.Connection) -> list[dict]:
                   AND ar.adoption_id IS NULL
             """,
             "refinement": "Approval inserts the ADOPTION_RECORD, and server startup reconciles historical approved applications.",
+        },
+        {
+            "id": "multiple_approved_applications_for_one_pet",
+            "title": "Only one application may be finally approved for a pet",
+            "severity": "high",
+            "llmRationale": "The ER rules allow multiple applications over time, but only one can end as the accepted adoption for a pet.",
+            "sql": """
+                SELECT pet_id, COUNT(*) AS approved_application_count
+                FROM ADOPTION_APPLICATION
+                WHERE status = 'Approved'
+                GROUP BY pet_id
+                HAVING COUNT(*) > 1
+            """,
+            "refinement": "Approval now checks for an existing approved application for the same pet inside a serialized write transaction.",
+        },
+        {
+            "id": "multiple_adoption_records_for_one_application",
+            "title": "One application can create at most one adoption record",
+            "severity": "high",
+            "llmRationale": "The ER relationship between AdoptionApplication and AdoptionRecord is 1:0..1, so duplicate final records are invalid.",
+            "sql": """
+                SELECT application_id, COUNT(*) AS adoption_record_count
+                FROM ADOPTION_RECORD
+                GROUP BY application_id
+                HAVING COUNT(*) > 1
+            """,
+            "refinement": "Approval reuses an existing adoption record for the same application and write operations are serialized to avoid duplicate inserts.",
         },
         {
             "id": "duplicate_active_applications",
@@ -1508,12 +1581,42 @@ def create_application(conn: sqlite3.Connection, payload: dict) -> dict:
         raise ApiError(HTTPStatus.NOT_FOUND, "Applicant not found.")
 
     pet = conn.execute(
-        "SELECT pet_id, status FROM PET WHERE pet_id = ?", (pet_id,)
+        "SELECT pet_id, status, intake_date FROM PET WHERE pet_id = ?", (pet_id,)
     ).fetchone()
     if not pet:
         raise ApiError(HTTPStatus.NOT_FOUND, "Pet not found.")
     if (pet["status"] or "").lower() != "available":
         raise ApiError(HTTPStatus.CONFLICT, "Only available pets can receive new applications.")
+    if db_date(pet["intake_date"]) > date.today():
+        raise ApiError(HTTPStatus.CONFLICT, "Pets cannot receive applications before their intake date.")
+    existing_approved = approved_application_for_pet(conn, pet_id)
+    if existing_approved:
+        raise ApiError(
+            HTTPStatus.CONFLICT,
+            f"This pet already has an approved application ({display_id('APP', existing_approved['application_id'])}).",
+        )
+    existing_pending = pending_application_for_pet(conn, pet_id)
+    if existing_pending:
+        raise ApiError(
+            HTTPStatus.CONFLICT,
+            f"This pet already has a pending application ({display_id('APP', existing_pending['application_id'])}).",
+        )
+    duplicate = conn.execute(
+        """
+        SELECT application_id
+        FROM ADOPTION_APPLICATION
+        WHERE applicant_id = ?
+          AND pet_id = ?
+          AND status = 'Under Review'
+        LIMIT 1
+        """,
+        (applicant_id, pet_id),
+    ).fetchone()
+    if duplicate:
+        raise ApiError(
+            HTTPStatus.CONFLICT,
+            f"This applicant already has an active application for the pet ({display_id('APP', duplicate['application_id'])}).",
+        )
 
     new_id = conn.execute(
         "SELECT COALESCE(MAX(application_id), 0) + 1 AS next_id FROM ADOPTION_APPLICATION"
@@ -1565,6 +1668,25 @@ def review_application(conn: sqlite3.Connection, application_id: int, payload: d
         raise ApiError(HTTPStatus.NOT_FOUND, "Application not found.")
     if application_status_label(app["status"]) != "Pending":
         raise ApiError(HTTPStatus.CONFLICT, "Only pending applications can be reviewed.")
+    linked_adoption = conn.execute(
+        "SELECT adoption_id FROM ADOPTION_RECORD WHERE application_id = ?",
+        (application_id,),
+    ).fetchone()
+    if linked_adoption and decision != "Approved":
+        raise ApiError(
+            HTTPStatus.CONFLICT,
+            "This application already has an adoption record and cannot be rejected.",
+        )
+
+    if decision == "Approved":
+        other_approved = approved_application_for_pet(
+            conn, app["pet_id"], exclude_application_id=application_id
+        )
+        if other_approved:
+            raise ApiError(
+                HTTPStatus.CONFLICT,
+                f"This pet already has an approved application ({display_id('APP', other_approved['application_id'])}).",
+            )
 
     conn.execute(
         """
@@ -1588,10 +1710,7 @@ def review_application(conn: sqlite3.Connection, application_id: int, payload: d
             if final_fee < 0:
                 raise ApiError(HTTPStatus.BAD_REQUEST, "Final adoption fee cannot be negative.")
 
-        existing_record = conn.execute(
-            "SELECT adoption_id FROM ADOPTION_RECORD WHERE application_id = ?",
-            (application_id,),
-        ).fetchone()
+        existing_record = linked_adoption
         if not existing_record:
             adoption_id = conn.execute(
                 "SELECT COALESCE(MAX(adoption_id), 0) + 1 AS next_id FROM ADOPTION_RECORD"
@@ -2006,7 +2125,16 @@ def assert_shelter_capacity(
         raise ApiError(HTTPStatus.CONFLICT, f"{shelter['name']} is already at capacity.")
 
 
-def approved_application_for_pet(conn: sqlite3.Connection, pet_id: int) -> sqlite3.Row | None:
+def approved_application_for_pet(
+    conn: sqlite3.Connection,
+    pet_id: int,
+    exclude_application_id: int | None = None,
+) -> sqlite3.Row | None:
+    params: list[Any] = [pet_id]
+    exclude_sql = ""
+    if exclude_application_id is not None:
+        exclude_sql = "AND aa.application_id != ?"
+        params.append(exclude_application_id)
     return conn.execute(
         """
         SELECT aa.*, ar.adoption_date
@@ -2014,10 +2142,11 @@ def approved_application_for_pet(conn: sqlite3.Connection, pet_id: int) -> sqlit
         LEFT JOIN ADOPTION_RECORD ar ON aa.application_id = ar.application_id
         WHERE aa.pet_id = ?
           AND aa.status = 'Approved'
+          {exclude_sql}
         ORDER BY date(COALESCE(ar.adoption_date, aa.reviewed_date, aa.application_date)) DESC
         LIMIT 1
-        """,
-        (pet_id,),
+        """.format(exclude_sql=exclude_sql),
+        params,
     ).fetchone()
 
 
@@ -2032,6 +2161,194 @@ def pending_application_for_pet(conn: sqlite3.Connection, pet_id: int) -> sqlite
         """,
         (pet_id,),
     ).fetchone()
+
+
+def assert_pet_intake_not_after_related_records(
+    conn: sqlite3.Connection, pet_id: int, intake_date: str
+) -> None:
+    issue = conn.execute(
+        """
+        SELECT issue, event_date
+        FROM (
+            SELECT 'application' AS issue, application_date AS event_date
+            FROM ADOPTION_APPLICATION
+            WHERE pet_id = ?
+              AND date(application_date) < date(?)
+            UNION ALL
+            SELECT 'adoption' AS issue, ar.adoption_date AS event_date
+            FROM ADOPTION_RECORD ar
+            JOIN ADOPTION_APPLICATION aa ON ar.application_id = aa.application_id
+            WHERE aa.pet_id = ?
+              AND date(ar.adoption_date) < date(?)
+            UNION ALL
+            SELECT 'medical visit' AS issue, visit_date AS event_date
+            FROM MEDICAL_RECORD
+            WHERE pet_id = ?
+              AND date(visit_date) < date(?)
+            UNION ALL
+            SELECT 'vaccination' AS issue, vaccination_date AS event_date
+            FROM VACCINATION
+            WHERE pet_id = ?
+              AND date(vaccination_date) < date(?)
+            UNION ALL
+            SELECT 'care assignment' AS issue, assignment_date AS event_date
+            FROM CARE_ASSIGNMENT
+            WHERE pet_id = ?
+              AND date(assignment_date) < date(?)
+        )
+        ORDER BY date(event_date)
+        LIMIT 1
+        """,
+        (
+            pet_id,
+            intake_date,
+            pet_id,
+            intake_date,
+            pet_id,
+            intake_date,
+            pet_id,
+            intake_date,
+            pet_id,
+            intake_date,
+        ),
+    ).fetchone()
+    if issue:
+        raise ApiError(
+            HTTPStatus.CONFLICT,
+            f"Pet intake date cannot be later than an existing {issue['issue']} on {issue['event_date']}.",
+        )
+
+
+def assert_pet_shelter_consistency_for_assignments(
+    conn: sqlite3.Connection, pet_id: int, shelter_id: int
+) -> None:
+    conflict = conn.execute(
+        """
+        SELECT c.assignment_id, v.full_name, s.name AS volunteer_shelter
+        FROM CARE_ASSIGNMENT c
+        JOIN VOLUNTEER v ON c.volunteer_id = v.volunteer_id
+        JOIN SHELTER s ON v.shelter_id = s.shelter_id
+        WHERE c.pet_id = ?
+          AND v.shelter_id != ?
+        ORDER BY c.assignment_date DESC, c.assignment_id DESC
+        LIMIT 1
+        """,
+        (pet_id, shelter_id),
+    ).fetchone()
+    if conflict:
+        raise ApiError(
+            HTTPStatus.CONFLICT,
+            "Pet shelter cannot be changed because existing care assignments would become cross-shelter.",
+        )
+
+
+def assert_volunteer_join_date_not_after_assignments(
+    conn: sqlite3.Connection, volunteer_id: int, join_date: str
+) -> None:
+    issue = conn.execute(
+        """
+        SELECT assignment_id, assignment_date
+        FROM CARE_ASSIGNMENT
+        WHERE volunteer_id = ?
+          AND date(assignment_date) < date(?)
+        ORDER BY date(assignment_date)
+        LIMIT 1
+        """,
+        (volunteer_id, join_date),
+    ).fetchone()
+    if issue:
+        raise ApiError(
+            HTTPStatus.CONFLICT,
+            f"Volunteer join date cannot be later than care assignment {display_id('CA', issue['assignment_id'])} on {issue['assignment_date']}.",
+        )
+
+
+def assert_volunteer_shelter_consistency_for_assignments(
+    conn: sqlite3.Connection, volunteer_id: int, shelter_id: int
+) -> None:
+    conflict = conn.execute(
+        """
+        SELECT c.assignment_id, p.name AS pet_name, s.name AS pet_shelter
+        FROM CARE_ASSIGNMENT c
+        JOIN PET p ON c.pet_id = p.pet_id
+        JOIN SHELTER s ON p.shelter_id = s.shelter_id
+        WHERE c.volunteer_id = ?
+          AND p.shelter_id != ?
+        ORDER BY c.assignment_date DESC, c.assignment_id DESC
+        LIMIT 1
+        """,
+        (volunteer_id, shelter_id),
+    ).fetchone()
+    if conflict:
+        raise ApiError(
+            HTTPStatus.CONFLICT,
+            "Volunteer shelter cannot be changed because existing care assignments would become cross-shelter.",
+        )
+
+
+def assert_resource_deletable(conn: sqlite3.Connection, resource: str, item_id: int) -> None:
+    if resource == "shelters":
+        pet_count = conn.execute(
+            "SELECT COUNT(*) AS count FROM PET WHERE shelter_id = ?",
+            (item_id,),
+        ).fetchone()["count"]
+        volunteer_count = conn.execute(
+            "SELECT COUNT(*) AS count FROM VOLUNTEER WHERE shelter_id = ?",
+            (item_id,),
+        ).fetchone()["count"]
+        if pet_count or volunteer_count:
+            raise ApiError(
+                HTTPStatus.CONFLICT,
+                "Shelters with linked pets or volunteers cannot be deleted.",
+            )
+
+    elif resource == "pets":
+        blockers = {
+            "applications": conn.execute(
+                "SELECT COUNT(*) AS count FROM ADOPTION_APPLICATION WHERE pet_id = ?",
+                (item_id,),
+            ).fetchone()["count"],
+            "medical records": conn.execute(
+                "SELECT COUNT(*) AS count FROM MEDICAL_RECORD WHERE pet_id = ?",
+                (item_id,),
+            ).fetchone()["count"],
+            "vaccinations": conn.execute(
+                "SELECT COUNT(*) AS count FROM VACCINATION WHERE pet_id = ?",
+                (item_id,),
+            ).fetchone()["count"],
+            "care assignments": conn.execute(
+                "SELECT COUNT(*) AS count FROM CARE_ASSIGNMENT WHERE pet_id = ?",
+                (item_id,),
+            ).fetchone()["count"],
+        }
+        active = [label for label, count in blockers.items() if count]
+        if active:
+            raise ApiError(
+                HTTPStatus.CONFLICT,
+                f"Pets with linked {', '.join(active)} cannot be deleted.",
+            )
+
+    elif resource == "applicants":
+        application_count = conn.execute(
+            "SELECT COUNT(*) AS count FROM ADOPTION_APPLICATION WHERE applicant_id = ?",
+            (item_id,),
+        ).fetchone()["count"]
+        if application_count:
+            raise ApiError(
+                HTTPStatus.CONFLICT,
+                "Applicants with adoption applications cannot be deleted.",
+            )
+
+    elif resource == "volunteers":
+        assignment_count = conn.execute(
+            "SELECT COUNT(*) AS count FROM CARE_ASSIGNMENT WHERE volunteer_id = ?",
+            (item_id,),
+        ).fetchone()["count"]
+        if assignment_count:
+            raise ApiError(
+                HTTPStatus.CONFLICT,
+                "Volunteers with care assignments cannot be deleted.",
+            )
 
 
 def validate_pet_status_workflow(
@@ -2071,8 +2388,17 @@ def validate_resource_rules(
         shelter_id = values["shelter_id"]
         status = values["status"]
         ensure_exists(conn, "SHELTER", "shelter_id", shelter_id, "Shelter")
-        if values.get("estimated_birth_date") and db_date(values["estimated_birth_date"]) > db_date(values["intake_date"]):
+        intake_date = db_date(values["intake_date"])
+        if intake_date > date.today():
+            raise ApiError(HTTPStatus.BAD_REQUEST, "Pet intake date cannot be in the future.")
+        if values.get("estimated_birth_date") and db_date(values["estimated_birth_date"]) > intake_date:
             raise ApiError(HTTPStatus.BAD_REQUEST, "Estimated birth date cannot be after intake date.")
+        if item_id is not None:
+            current_pet = ensure_exists(conn, "PET", "pet_id", item_id, "Pet")
+            if values["intake_date"] != current_pet["intake_date"]:
+                assert_pet_intake_not_after_related_records(conn, item_id, values["intake_date"])
+            if shelter_id != current_pet["shelter_id"]:
+                assert_pet_shelter_consistency_for_assignments(conn, item_id, shelter_id)
         validate_pet_status_workflow(conn, item_id, status, item_id is None)
         assert_shelter_capacity(conn, shelter_id, status, item_id)
 
@@ -2095,13 +2421,29 @@ def validate_resource_rules(
     elif resource == "volunteers":
         ensure_exists(conn, "SHELTER", "shelter_id", values["shelter_id"], "Shelter")
         assert_unique_email(conn, "VOLUNTEER", "volunteer_id", values.get("email"), item_id, "Volunteer")
+        if item_id is not None:
+            current_volunteer = ensure_exists(conn, "VOLUNTEER", "volunteer_id", item_id, "Volunteer")
+            if values.get("join_date") and values["join_date"] != current_volunteer["join_date"]:
+                assert_volunteer_join_date_not_after_assignments(conn, item_id, values["join_date"])
+            if values["shelter_id"] != current_volunteer["shelter_id"]:
+                assert_volunteer_shelter_consistency_for_assignments(conn, item_id, values["shelter_id"])
 
     elif resource == "care-assignments":
-        ensure_exists(conn, "VOLUNTEER", "volunteer_id", values["volunteer_id"], "Volunteer")
+        volunteer = ensure_exists(conn, "VOLUNTEER", "volunteer_id", values["volunteer_id"], "Volunteer")
         pet = ensure_exists(conn, "PET", "pet_id", values["pet_id"], "Pet")
         assignment_date = db_date(values["assignment_date"])
         if assignment_date < db_date(pet["intake_date"]):
             raise ApiError(HTTPStatus.BAD_REQUEST, "Care assignment date cannot be before pet intake date.")
+        if volunteer["shelter_id"] != pet["shelter_id"]:
+            raise ApiError(
+                HTTPStatus.CONFLICT,
+                "Volunteer and pet must belong to the same shelter for care assignments.",
+            )
+        if volunteer["join_date"] and assignment_date < db_date(volunteer["join_date"]):
+            raise ApiError(
+                HTTPStatus.BAD_REQUEST,
+                "Care assignment date cannot be before the volunteer join date.",
+            )
         approved = approved_application_for_pet(conn, values["pet_id"])
         if approved and values.get("status") != "Cancelled":
             adoption_date = db_date(approved["adoption_date"] or approved["reviewed_date"] or approved["application_date"])
@@ -2166,6 +2508,7 @@ def update_resource(conn: sqlite3.Connection, resource: str, item_id: int, paylo
 def delete_resource(conn: sqlite3.Connection, resource: str, item_id: int) -> dict:
     config = CRUD_CONFIGS[resource]
     ensure_resource_exists(conn, config["table"], config["pk"], item_id)
+    assert_resource_deletable(conn, resource, item_id)
     conn.execute(f"DELETE FROM {config['table']} WHERE {config['pk']} = ?", (item_id,))
     return resource_payload(conn, resource)
 
@@ -2241,6 +2584,7 @@ class PawTrackHandler(BaseHTTPRequestHandler):
             payload = self.read_json_body()
             if parsed.path == "/api/applications":
                 with connect() as conn:
+                    begin_write(conn)
                     result = create_application(conn, payload)
                     conn.commit()
                 self.write_json({"application": result}, HTTPStatus.CREATED)
@@ -2252,6 +2596,7 @@ class PawTrackHandler(BaseHTTPRequestHandler):
                 return
             if parsed.path == "/api/follow-ups":
                 with connect() as conn:
+                    begin_write(conn)
                     result = create_follow_up(conn, payload)
                     conn.commit()
                 self.write_json({"followUp": result}, HTTPStatus.CREATED)
@@ -2259,6 +2604,7 @@ class PawTrackHandler(BaseHTTPRequestHandler):
             parts = [part for part in parsed.path.split("/") if part]
             if len(parts) == 2 and parts[0] == "api" and parts[1] in CRUD_CONFIGS:
                 with connect() as conn:
+                    begin_write(conn)
                     result = create_resource(conn, parts[1], payload)
                     conn.commit()
                 self.write_json(result, HTTPStatus.CREATED)
@@ -2279,6 +2625,7 @@ class PawTrackHandler(BaseHTTPRequestHandler):
             if len(parts) == 4 and parts[:2] == ["api", "applications"] and parts[3] == "review":
                 application_id = int(parts[2])
                 with connect() as conn:
+                    begin_write(conn)
                     result = review_application(conn, application_id, payload)
                     conn.commit()
                 self.write_json({"application": result})
@@ -2286,6 +2633,7 @@ class PawTrackHandler(BaseHTTPRequestHandler):
             if len(parts) == 3 and parts[0] == "api" and parts[1] in CRUD_CONFIGS:
                 item_id = int(parts[2])
                 with connect() as conn:
+                    begin_write(conn)
                     result = update_resource(conn, parts[1], item_id, payload)
                     conn.commit()
                 self.write_json(result)
@@ -2307,6 +2655,7 @@ class PawTrackHandler(BaseHTTPRequestHandler):
             if len(parts) == 3 and parts[0] == "api" and parts[1] in CRUD_CONFIGS:
                 item_id = int(parts[2])
                 with connect() as conn:
+                    begin_write(conn)
                     result = delete_resource(conn, parts[1], item_id)
                     conn.commit()
                 self.write_json(result)

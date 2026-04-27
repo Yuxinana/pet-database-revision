@@ -100,8 +100,8 @@ ORDER BY date(event_date) DESC, event_kind, event_title;
 
 -- Q4: View pets whose vaccination due date is approaching
 -- Purpose: Staff identifies pets that need vaccination follow-up soon.
--- Example: Returns vaccinations due within the next 30 days from the execution date.
--- Result characteristics: Excludes records with no due date and sorts by the nearest deadline first.
+-- Example: Returns vaccinations due between today and the next 30 days from the execution date.
+-- Result characteristics: Excludes records with no due date or already overdue records, and sorts by the nearest deadline first.
 SELECT
     p.pet_id,
     p.name,
@@ -111,6 +111,7 @@ SELECT
 FROM PET p
 JOIN VACCINATION v ON p.pet_id = v.pet_id
 WHERE v.next_due_date IS NOT NULL
+  AND date(v.next_due_date) >= date('now', '+8 hours')
   AND date(v.next_due_date) <= date('now', '+8 hours', '+30 day')
 ORDER BY date(v.next_due_date), p.pet_id;
 

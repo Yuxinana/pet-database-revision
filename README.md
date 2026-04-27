@@ -9,7 +9,7 @@ SQLite-backed course project for managing shelters, pets, adoption applications,
 - ER design, table set, field set, and relationships were kept unchanged.
 - The schema was hardened with declarative constraints that match the documented design.
 - Official SQL deliverables now run directly on SQLite.
-- The web prototype, LLM bonus page, and MCP server all use the same reviewed read-only query registry.
+- The web prototype uses GLM-generated prompt-to-SQL with backend read-only validation.
 - Index recommendations are now applied during database initialization instead of remaining documentation-only.
 
 ## Repository Map
@@ -24,12 +24,12 @@ SQLite-backed course project for managing shelters, pets, adoption applications,
 | `src/queries/operational_queries.sql` | 6 operational read-only SQLite queries |
 | `src/queries/analytical_queries.sql` | 6 analytical read-only SQLite queries |
 | `src/WORKFLOW_SQL_EXAMPLES.md` | Workflow-oriented mutation examples kept outside the read-only registry |
-| `src/query_registry.py` | Shared reviewed read-only query catalog and prompt routing |
+| `src/query_registry.py` | Parser/catalog helper for the 12 official reviewed read-only SQL deliverables |
 | `src/llm_sql_assistant.py` | GLM prompt-to-SQL generation, prompt construction, SQL validation, and read-only execution |
 | `src/llm_prompt_cases.json` | Prompt-to-SQL evaluation cases |
 | `src/llm_prompt_eval.py` | Manual GLM prompt-method evaluation runner |
 | `src/web_server.py` | Database initializer, audit logic, API layer, CRUD validation |
-| `src/mcp_server.py` | Optional MCP server exposing the same read-only query registry |
+| `src/mcp_server.py` | Optional MCP server exposing named read-only query tools |
 | `pawtrack_demo.html` | Single-file frontend demo |
 | `test_cases.md` | Manual test design and reproducible validation checklist |
 | `REQUIREMENT_TRACEABILITY.md` | Requirement-to-evidence mapping for report and presentation use |
@@ -122,7 +122,7 @@ Important changes from the earlier draft:
 - Medical
 - Volunteers
 - Analytics
-- LLM Bonus
+- Assistant
 
 The UI uses backend-returned raw values for business logic and display labels for presentation. For example:
 
@@ -138,8 +138,7 @@ The UI uses backend-returned raw values for business logic and display labels fo
 | `GET /api/health` | Health check and active database path |
 | `GET /api/dashboard` | Dashboard metrics, status overview, recent activity |
 | `GET /api/analytics` | Analytical query outputs |
-| `GET /api/llm-bonus` | Architecture refinement summary, audit, prompt patterns, query catalog |
-| `POST /api/llm-query` | Natural-language routing to a reviewed read-only SQL query |
+| `GET /api/llm-bonus` | Architecture refinement summary, audit, prompt methods, evaluation metadata |
 | `POST /api/llm-generate-query` | GLM prompt-to-SQL generation guarded by read-only validation |
 | `GET /api/pets` | Pet roster with shelter data and status labels |
 | `GET /api/applicants` | Applicant data |
@@ -168,16 +167,20 @@ This repository implements Option A in a controlled way.
 
 `GET /api/llm-bonus` exposes:
 
-- refined design notes
+- original-vs-refined database design comparison
+- GLM-assisted integrity and access-path refinements
 - enforcement-layer-aware integrity checks
 - current audit findings with sample rows
-- reviewed query catalog metadata
+- GLM prompt-method and evaluation metadata
+
+The accepted architecture refinements preserve the original ER entity set and relationships while making key rules executable: controlled domains, adoption-record uniqueness, temporal ordering, workflow-derived pet/application/adoption state, anomaly audits, and runtime indexes.
+
+This evidence is documented for the report and remains available through the API; it is not shown as a separate frontend page.
 
 ### Part 2: GLM prompt-to-SQL investigation
 
-The project now contains two assistant paths:
+The project exposes one assistant path:
 
-- `POST /api/llm-query`: baseline safe routing into the reviewed SQL registry in `src/query_registry.py`
 - `POST /api/llm-generate-query`: GLM-generated SQLite SQL with strict read-only validation before execution
 
 The generated path supports four prompt methods:
@@ -195,7 +198,17 @@ Configure GLM access with environment variables:
 export ZAI_API_KEY="your-rotated-key"
 export GLM_MODEL="glm-5.1"
 export GLM_BASE_URL="https://open.bigmodel.cn/api/paas/v4/"
+export LLM_SQL_TIMEOUT_SECONDS="120"
+export GLM_TIMEOUT_RETRIES="1"
+export GLM_TIMEOUT_BACKOFF_SECONDS="2"
+export GLM_MAX_CONCURRENT_REQUESTS="1"
+export GLM_MIN_REQUEST_INTERVAL_SECONDS="1"
+export GLM_RATE_LIMIT_RETRIES="4"
+export GLM_RATE_LIMIT_BACKOFF_SECONDS="2"
 ```
+
+`LLM_SQL_TIMEOUT_SECONDS` should stay high enough for GLM prompt-to-SQL responses; timeout retries handle transient slow responses but cannot make a consistently unavailable provider respond.
+`GLM_MAX_CONCURRENT_REQUESTS` is a local throttle, not a provider quota override. Keep it low if GLM returns HTTP 429; raise it only after the account quota is upgraded.
 
 The prompt evaluation pack lives in:
 
@@ -224,9 +237,6 @@ Available tools:
 
 - `list_available_queries`
 - `execute_named_query`
-- `natural_language_query`
-
-These tools expose the same read-only registry used by `/api/llm-query`.
 
 ## How to Run
 
@@ -277,4 +287,4 @@ See:
 - SQLite is the official target; the repository no longer treats MySQL syntax as the canonical deliverable.
 - The prototype is designed for course demonstration and validation, not multi-user production deployment.
 - The MCP server requires the optional `mcp` dependency, but the rest of the project does not.
-- GLM-generated SQL requires `openai>=1.0` and `ZAI_API_KEY`; the reviewed-template assistant works without an API key.
+- GLM-generated SQL requires `openai>=1.0` and `ZAI_API_KEY`.

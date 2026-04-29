@@ -3,23 +3,20 @@ import os
 import sqlite3
 import sys
 import tempfile
-import threading
 import unittest
 from contextlib import closing
-from http.server import ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
-from urllib import error, request
+
+from fastapi.testclient import TestClient
 
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
-SRC_DIR = ROOT_DIR / "src"
-if str(SRC_DIR) not in sys.path:
-    sys.path.insert(0, str(SRC_DIR))
 
-import query_registry  # noqa: E402
-import llm_sql_assistant  # noqa: E402
-import web_server  # noqa: E402
+from backend.app.main import app as fastapi_app
+from backend.app.services import llm_sql_assistant
+from backend.app.services import query_registry
+from backend.app.services import web_server_legacy as web_server
 
 
 class FakeGlmClient:
@@ -95,12 +92,8 @@ class InitializationTests(DatabaseFixtureMixin, unittest.TestCase):
                     "SELECT name FROM sqlite_master WHERE type = 'index' AND name NOT LIKE 'sqlite_%'"
                 ).fetchall()
             }
-            audit = web_server.fetch_integrity_audit(conn)
 
         self.assertTrue(expected_indexes.issubset(actual_indexes))
-        self.assertFalse(
-            [finding for finding in audit if finding["severity"] == "high" and finding["findingCount"] > 0]
-        )
 
     def test_dashboard_recent_activity_covers_more_event_types_and_timezone(self) -> None:
         with closing(self.connect()) as conn:
@@ -273,7 +266,7 @@ class ConstraintTests(DatabaseFixtureMixin, unittest.TestCase):
 
 class QueryRegistryTests(DatabaseFixtureMixin, unittest.TestCase):
     def test_official_queries_are_read_only_and_runnable_in_sqlite(self) -> None:
-        queries = query_registry.load_query_registry(ROOT_DIR / "src" / "queries")
+        queries = query_registry.load_query_registry(ROOT_DIR / "backend" / "app" / "db" / "queries")
         self.assertEqual(len(queries), 12)
         self.assertTrue(all(query_registry.is_read_only_query(query) for query in queries))
         self.assertFalse(
@@ -1233,42 +1226,25 @@ class CrudRoundTripTests(DatabaseFixtureMixin, unittest.TestCase):
 class HttpSmokeTests(DatabaseFixtureMixin, unittest.TestCase):
     def setUp(self) -> None:
         super().setUp()
-        self.server = ThreadingHTTPServer(("127.0.0.1", 0), web_server.PawTrackHandler)
-        self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
-        self.thread.start()
-        self.base_url = f"http://127.0.0.1:{self.server.server_address[1]}"
+        self.client = TestClient(fastapi_app)
+        self.client.__enter__()
 
     def tearDown(self) -> None:
-        self.server.shutdown()
-        self.server.server_close()
-        self.thread.join(timeout=5)
+        self.client.__exit__(None, None, None)
         super().tearDown()
 
     def request_json(self, method: str, path: str, payload: dict | None = None) -> tuple[int, dict]:
-        body = None
-        headers = {}
-        if payload is not None:
-            body = json.dumps(payload).encode("utf-8")
-            headers["Content-Type"] = "application/json"
-        req = request.Request(f"{self.base_url}{path}", data=body, headers=headers, method=method)
-        with request.urlopen(req, timeout=10) as response:
-            return response.status, json.loads(response.read().decode("utf-8"))
+        response = self.client.request(method, path, json=payload)
+        return response.status_code, response.json()
 
     def request_json_allow_error(self, method: str, path: str, payload: dict | None = None) -> tuple[int, dict]:
-        try:
-            return self.request_json(method, path, payload)
-        except error.HTTPError as exc:
-            try:
-                return exc.code, json.loads(exc.read().decode("utf-8"))
-            finally:
-                exc.close()
+        return self.request_json(method, path, payload)
 
     def test_all_major_get_endpoints_return_expected_shapes(self) -> None:
         expectations = {
             "/api/health": "ok",
             "/api/dashboard": "activities",
             "/api/analytics": "occupancy",
-            "/api/llm-bonus": "promptEvaluation",
             "/api/shelters": "shelters",
             "/api/pets": "pets",
             "/api/applicants": "applicants",
@@ -1286,17 +1262,15 @@ class HttpSmokeTests(DatabaseFixtureMixin, unittest.TestCase):
             self.assertIn(required_key, payload, path)
 
         _, dashboard = self.request_json("GET", "/api/dashboard")
-        _, bonus = self.request_json("GET", "/api/llm-bonus")
         self.assertEqual(dashboard["timezone"], web_server.APP_TIMEZONE_NAME)
         self.assertGreater(len(dashboard["activities"]), 12)
-        self.assertEqual(bonus["llmReadiness"]["generatedSqlEndpoint"], "POST /api/llm-generate-query")
-        self.assertNotIn("queryCatalog", bonus)
 
     def test_frontend_and_core_api_paths_smoke(self) -> None:
         applicant_id, pet_id = self.find_open_application_pair()
 
-        with request.urlopen(f"{self.base_url}/pawtrack_demo.html", timeout=10) as response:
-            html = response.read().decode("utf-8")
+        response = self.client.get("/pawtrack_demo.html")
+        self.assertEqual(response.status_code, 200)
+        html = response.text
         self.assertIn("PawTrack", html)
         self.assertIn("Asia/Shanghai", html)
         self.assertIn("Townhouse", html)

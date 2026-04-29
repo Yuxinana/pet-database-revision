@@ -16,23 +16,24 @@ SQLite-backed course project for managing shelters, pets, adoption applications,
 
 | Path | Purpose |
 |---|---|
-| `ER Design for the Pet Adoption Center Management System.md` | Design rationale, functional requirements, cardinalities, FDs, normalization |
-| `mermaid-ER-diagram.png` | ER diagram artifact |
-| `data/` | CSV seed data used to rebuild the database |
-| `src/schema/table.sql` | Full schema definition with PK/FK/`CHECK`/`UNIQUE` constraints |
-| `src/schema/indexing.sql` | Representative indexes tied to operational and analytical workloads |
-| `src/queries/operational_queries.sql` | 6 operational read-only SQLite queries |
-| `src/queries/analytical_queries.sql` | 6 analytical read-only SQLite queries |
-| `src/WORKFLOW_SQL_EXAMPLES.md` | Workflow-oriented mutation examples kept outside the read-only registry |
-| `src/query_registry.py` | Parser/catalog helper for the 12 official reviewed read-only SQL deliverables |
-| `src/llm_sql_assistant.py` | GLM prompt-to-SQL generation, prompt construction, SQL validation, and read-only execution |
-| `src/llm_prompt_cases.json` | Prompt-to-SQL evaluation cases |
-| `src/llm_prompt_eval.py` | Manual GLM prompt-method evaluation runner |
-| `src/web_server.py` | Database initializer, audit logic, API layer, CRUD validation |
-| `src/mcp_server.py` | Optional MCP server exposing named read-only query tools |
-| `pawtrack_demo.html` | Single-file frontend demo |
-| `test_cases.md` | Manual test design and reproducible validation checklist |
-| `REQUIREMENT_TRACEABILITY.md` | Requirement-to-evidence mapping for report and presentation use |
+| `backend/` | FastAPI backend wrapper with routers, config, and compatibility layer |
+| `frontend/` | Vue/Vite shell that preserves the existing `frontend/legacy/pawtrack_demo.html` UI |
+| `docs/ER_DESIGN.md` | Design rationale, functional requirements, cardinalities, FDs, normalization |
+| `PROJECT_STRUCTURE.md` | Current project layout and cleanup guidance |
+| `docs/diagrams/er_diagram.png` | ER diagram artifact |
+| `backend/app/db/data/` | CSV seed data used to rebuild the database |
+| `backend/app/db/schema/table.sql` | Full schema definition with PK/FK/`CHECK`/`UNIQUE` constraints |
+| `backend/app/db/schema/indexing.sql` | Representative indexes tied to operational and analytical workloads |
+| `backend/app/db/queries/operational_queries.sql` | 6 operational read-only SQLite queries |
+| `backend/app/db/queries/analytical_queries.sql` | 6 analytical read-only SQLite queries |
+| `docs/sql/WORKFLOW_SQL_EXAMPLES.md` | Workflow-oriented mutation examples kept outside the read-only registry |
+| `backend/app/services/query_registry.py` | Parser/catalog helper for the 12 official reviewed read-only SQL deliverables |
+| `backend/app/services/llm_sql_assistant.py` | GLM prompt-to-SQL generation, prompt construction, SQL validation, and read-only execution |
+| `backend/app/services/web_server_legacy.py` | Existing database initialization, validation, and service behavior moved under backend |
+| `docs/` | Supporting design, workflow SQL, and diagram documents |
+| `frontend/legacy/pawtrack_demo.html` | Preserved full frontend UI served by FastAPI |
+| `docs/TEST_CASES.md` | Manual test design and reproducible validation checklist |
+| `docs/REQUIREMENT_TRACEABILITY.md` | Requirement-to-evidence mapping for report and presentation use |
 | `tests/test_backend.py` | Automated regression tests |
 
 ## Data Snapshot
@@ -83,7 +84,7 @@ The implementation preserves the original ER structure while making the document
   - care-assignment shelter consistency
   - follow-up timing and adoption workflow ordering
 
-The integrity audit exposed by `GET /api/llm-bonus` labels each rule by enforcement layer: `schema`, `application`, or audit-oriented review logic.
+The backend still runs these checks during database initialization so invalid source data fails early instead of producing a broken demo database.
 
 ## Official SQL Deliverables
 
@@ -114,7 +115,7 @@ Important changes from the earlier draft:
 
 ### Frontend
 
-`pawtrack_demo.html` is a single-file prototype covering:
+`frontend/legacy/pawtrack_demo.html` is a single-file prototype covering:
 
 - Dashboard
 - Pets
@@ -138,7 +139,6 @@ The UI uses backend-returned raw values for business logic and display labels fo
 | `GET /api/health` | Health check and active database path |
 | `GET /api/dashboard` | Dashboard metrics, status overview, recent activity |
 | `GET /api/analytics` | Analytical query outputs |
-| `GET /api/llm-bonus` | Architecture refinement summary, audit, prompt methods, evaluation metadata |
 | `POST /api/llm-generate-query` | GLM prompt-to-SQL generation guarded by read-only validation |
 | `GET /api/pets` | Pet roster with shelter data and status labels |
 | `GET /api/applicants` | Applicant data |
@@ -159,25 +159,7 @@ Generic CRUD routes are also available for `shelters`, `pets`, `applicants`, `me
 - `PATCH /api/{resource}/{id}`
 - `DELETE /api/{resource}/{id}`
 
-## LLM + Database Bonus
-
-This repository implements Option A in a controlled way.
-
-### Part 1: LLM-assisted architecture review
-
-`GET /api/llm-bonus` exposes:
-
-- original-vs-refined database design comparison
-- GLM-assisted integrity and access-path refinements
-- enforcement-layer-aware integrity checks
-- current audit findings with sample rows
-- GLM prompt-method and evaluation metadata
-
-The accepted architecture refinements preserve the original ER entity set and relationships while making key rules executable: controlled domains, adoption-record uniqueness, temporal ordering, workflow-derived pet/application/adoption state, anomaly audits, and runtime indexes.
-
-This evidence is documented for the report and remains available through the API; it is not shown as a separate frontend page.
-
-### Part 2: GLM prompt-to-SQL investigation
+## GLM Prompt-To-SQL Assistant
 
 The project exposes one assistant path:
 
@@ -210,55 +192,29 @@ export GLM_RATE_LIMIT_BACKOFF_SECONDS="2"
 `LLM_SQL_TIMEOUT_SECONDS` should stay high enough for GLM prompt-to-SQL responses; timeout retries handle transient slow responses but cannot make a consistently unavailable provider respond.
 `GLM_MAX_CONCURRENT_REQUESTS` is a local throttle, not a provider quota override. Keep it low if GLM returns HTTP 429; raise it only after the account quota is upgraded.
 
-The prompt evaluation pack lives in:
-
-- `src/llm_prompt_cases.json`
-- `src/llm_prompt_eval.py`
-- `src/llm_prompt_results.json`
-
-Run the evaluation manually after setting `ZAI_API_KEY`:
-
-```bash
-python3 src/llm_prompt_eval.py --methods zero_shot schema_grounded few_shot self_check_repair
-```
-
-## Optional MCP Server
-
-The MCP server is optional. The core web system does not depend on it.
-
-If you want MCP support:
-
-```powershell
-pip install -r requirements.txt
-python src\mcp_server.py
-```
-
-Available tools:
-
-- `list_available_queries`
-- `execute_named_query`
-
 ## How to Run
 
 ### Prerequisites
 
 - Python 3.10+
+- Node.js 18+ for the Vue frontend
 
-### Rebuild and start the backend
-
-```powershell
-python src\web_server.py --reset-db
-```
-
-Normal startup:
+### FastAPI + Vue startup
 
 ```powershell
-python src\web_server.py
+python -m pip install -r requirements.txt
+npm install --prefix frontend
+npm run api
+npm run frontend
 ```
 
 Then open:
 
-- `http://127.0.0.1:8000/pawtrack_demo.html`
+- `http://127.0.0.1:5173`
+
+The API runs at `http://127.0.0.1:8000`. The Vue app currently preserves the
+existing UI by embedding `frontend/legacy/pawtrack_demo.html`, so the visual style and workflows
+remain unchanged while the codebase is standardized.
 
 ## Verification
 
@@ -271,20 +227,18 @@ python -m unittest discover -s tests -v
 ### Syntax check
 
 ```powershell
-python -m py_compile src\web_server.py src\mcp_server.py src\query_registry.py src\llm_sql_assistant.py src\llm_prompt_eval.py
+python -m py_compile backend\app\services\web_server_legacy.py backend\app\services\query_registry.py backend\app\services\llm_sql_assistant.py
 ```
 
 ### Manual checks
 
 See:
 
-- [test_cases.md](test_cases.md)
-- [REQUIREMENT_TRACEABILITY.md](REQUIREMENT_TRACEABILITY.md)
-- [src/LLM_DATABASE_BONUS.md](src/LLM_DATABASE_BONUS.md)
+- [docs/TEST_CASES.md](docs/TEST_CASES.md)
+- [docs/REQUIREMENT_TRACEABILITY.md](docs/REQUIREMENT_TRACEABILITY.md)
 
 ## Known Boundaries
 
 - SQLite is the official target; the repository no longer treats MySQL syntax as the canonical deliverable.
 - The prototype is designed for course demonstration and validation, not multi-user production deployment.
-- The MCP server requires the optional `mcp` dependency, but the rest of the project does not.
 - GLM-generated SQL requires `openai>=1.0` and `ZAI_API_KEY`.

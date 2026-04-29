@@ -216,6 +216,17 @@ The API runs at `http://127.0.0.1:8000`. The Vue app currently preserves the
 existing UI by embedding `frontend/legacy/pawtrack_demo.html`, so the visual style and workflows
 remain unchanged while the codebase is standardized.
 
+### Render deployment
+
+Render must run the FastAPI app, not the old deleted `src/web_server.py` file.
+
+Use these settings in the Render web service:
+
+- Build Command: `pip install -r requirements.txt && npm install --prefix frontend && npm --prefix frontend run build`
+- Start Command: `uvicorn backend.app.main:app --host 0.0.0.0 --port $PORT`
+
+The repository also includes `render.yaml` with the same commands for Blueprint-style deploys.
+
 ## Verification
 
 ### Automated tests

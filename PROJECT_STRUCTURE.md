@@ -1,7 +1,7 @@
 # Project Structure
 
-The current migration keeps the original UI and behavior intact while placing
-the runtime behind a clearer FastAPI + Vue project layout.
+The frontend is organized as a Vue/Vite application, while the FastAPI backend
+exposes the JSON API used by the UI.
 
 ```text
 pet-database_update/
@@ -11,27 +11,41 @@ pet-database_update/
 │       ├── core/
 │       │   ├── config.py     # Shared paths
 │       │   ├── errors.py     # FastAPI exception handlers
-│       │   └── legacy.py     # Compatibility layer over existing services
+│       │   └── service.py    # Service facade used by routes and startup
 │       ├── routes/
-│       │   ├── api.py        # /api routes used by the preserved UI
-│       │   └── frontend.py   # Routes serving the preserved HTML UI
+│       │   ├── api.py        # /api routes used by the Vue frontend
+│       │   └── frontend.py   # Root route serving the Vue entry point
 │       ├── db/
 │       │   ├── schema/       # SQLite schema and indexes
 │       │   ├── queries/      # Reviewed read-only SQL deliverables
 │       │   └── data/         # CSV seed data used by database initialization
 │       └── services/
-│           ├── web_server_legacy.py  # Existing service logic, moved into backend
+│           ├── pawtrack_service.py   # Database initialization and business workflows
 │           ├── query_registry.py
 │           └── llm_sql_assistant.py  # Prompt-to-SQL and SQL safety checks
-├── frontend/                 # Vue/Vite shell
+├── frontend/                 # Vue/Vite application
 │   ├── src/
-│   │   ├── App.vue           # Full-page shell for the preserved UI
+│   │   ├── App.vue           # Vue entry component
+│   │   ├── components/       # Sidebar, modals, and utility components
+│   │   ├── pages/            # Page-level views
+│   │   ├── services/         # API clients and external adapters
+│   │   ├── config/           # App-wide constants
+│   │   ├── utils/            # DOM and formatting helpers
+│   │   ├── features/         # Domain feature modules and controllers
+│   │   │   ├── analytics/    # Analytics table and chart rendering
+│   │   │   ├── assistant/    # Prompt-to-SQL UI behavior
+│   │   │   ├── crud/         # CRUD form configuration
+│   │   │   ├── data/         # Frontend data loading service
+│   │   │   ├── domain/       # Frontend business rules and guards
+│   │   │   ├── errors/       # Fallback/error-state rendering
+│   │   │   └── ui/           # Shared UI controllers
+│   │   ├── lib/              # Application bootstrap and orchestration
+│   │   ├── styles/           # Application styles
 │   │   ├── main.js
-│   │   └── styles.css
+│   ├── tests/              # Frontend unit tests
 │   └── vite.config.js
+├── backend/tests/           # Backend regression tests
 ├── docs/                     # Supporting report, SQL, and diagram docs
-├── tests/                    # Regression tests
-├── frontend/legacy/pawtrack_demo.html  # Preserved full UI, served by FastAPI
 ├── README.md
 ├── requirements.txt
 └── package.json
@@ -39,10 +53,8 @@ pet-database_update/
 
 ## What Not To Delete Yet
 
-- `frontend/legacy/pawtrack_demo.html`: this is still the complete production UI.
-- `backend/app/services/web_server_legacy.py`: this still holds the existing
-  database initialization, validation, and service behavior while it is split
-  further.
+- `backend/app/services/pawtrack_service.py`: this holds database
+  initialization, validation, and service behavior.
 - `backend/app/services/llm_sql_assistant.py`: this holds the prompt-to-SQL
   implementation and SQL safety checks.
 - `pet_database.db`: generated runtime database; ignored by git, but useful for

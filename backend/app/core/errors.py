@@ -7,7 +7,7 @@ from typing import Any
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
-from .legacy import ApiError
+from .service import ApiError
 
 
 def error_payload(message: str, extra: dict[str, Any] | None = None) -> dict[str, Any]:

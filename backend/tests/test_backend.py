@@ -11,12 +11,12 @@ from typing import Any
 from fastapi.testclient import TestClient
 
 
-ROOT_DIR = Path(__file__).resolve().parents[1]
+ROOT_DIR = Path(__file__).resolve().parents[2]
 
 from backend.app.main import app as fastapi_app
 from backend.app.services import llm_sql_assistant
 from backend.app.services import query_registry
-from backend.app.services import web_server_legacy as web_server
+from backend.app.services import pawtrack_service as web_server
 
 
 class FakeGlmClient:
@@ -1268,22 +1268,22 @@ class HttpSmokeTests(DatabaseFixtureMixin, unittest.TestCase):
     def test_frontend_and_core_api_paths_smoke(self) -> None:
         applicant_id, pet_id = self.find_open_application_pair()
 
-        response = self.client.get("/pawtrack_demo.html")
+        response = self.client.get("/")
         self.assertEqual(response.status_code, 200)
         html = response.text
         self.assertIn("PawTrack", html)
-        self.assertIn("Asia/Shanghai", html)
-        self.assertIn("Townhouse", html)
-        self.assertNotIn("toISOString().slice(0, 10)", html)
-        self.assertIn("activity-feed", html)
-        self.assertIn("activity-type", html)
-        self.assertIn("Assistant SQL", html)
-        self.assertIn("llm-method-select", html)
-        self.assertIn("Pet (available or reserved)", html)
-        self.assertIn("function formatPetSelectionLabel", html)
-        self.assertNotIn("Pet (available only)", html)
-        self.assertNotIn("LLM Bonus", html)
-        self.assertNotIn("page-llm", html)
+        self.assertTrue((ROOT_DIR / "frontend" / "src" / "components" / "AppSidebar.vue").exists())
+        self.assertTrue((ROOT_DIR / "frontend" / "src" / "pages" / "DashboardPage.vue").exists())
+        self.assertTrue((ROOT_DIR / "frontend" / "src" / "lib" / "pawtrackApp.js").exists())
+        self.assertTrue((ROOT_DIR / "frontend" / "src" / "services" / "apiClient.js").exists())
+        self.assertTrue((ROOT_DIR / "frontend" / "src" / "features" / "analytics" / "analyticsRenderer.js").exists())
+        self.assertTrue((ROOT_DIR / "frontend" / "src" / "features" / "assistant" / "assistantController.js").exists())
+        self.assertTrue((ROOT_DIR / "frontend" / "src" / "features" / "crud" / "crudConfigs.js").exists())
+        self.assertTrue((ROOT_DIR / "frontend" / "src" / "features" / "data" / "pawtrackDataService.js").exists())
+        self.assertTrue((ROOT_DIR / "frontend" / "src" / "features" / "domain" / "pawtrackDomain.js").exists())
+        self.assertTrue((ROOT_DIR / "frontend" / "src" / "features" / "errors" / "loadErrorRenderer.js").exists())
+        self.assertTrue((ROOT_DIR / "frontend" / "src" / "features" / "ui" / "uiController.js").exists())
+        self.assertTrue((ROOT_DIR / "frontend" / "src" / "styles" / "main.css").exists())
 
         status, dashboard = self.request_json("GET", "/api/dashboard")
         self.assertEqual(status, 200)

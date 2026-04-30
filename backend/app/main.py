@@ -9,7 +9,7 @@ from fastapi.staticfiles import StaticFiles
 
 from .core.config import FRONTEND_DIST
 from .core.errors import register_exception_handlers
-from .core.legacy import initialize_database
+from .core.service import initialize_database
 from .routes import api, frontend
 
 

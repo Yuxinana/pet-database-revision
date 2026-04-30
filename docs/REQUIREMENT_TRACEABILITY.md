@@ -6,16 +6,16 @@ Verified against the repository state on April 23, 2026. SQLite is the official 
 
 | PDF item | What the requirement asks for | Primary repository evidence | Runtime / test evidence |
 |---|---|---|---|
-| Requirement 1 | Problem background, scope, and functional requirements | [README.md](README.md), [docs/ER_DESIGN.md](docs/ER_DESIGN.md) | `python -m unittest discover -s tests -v` |
+| Requirement 1 | Problem background, scope, and functional requirements | [README.md](README.md), [docs/ER_DESIGN.md](docs/ER_DESIGN.md) | `python3 -m pytest backend/tests` |
 | Requirement 2 | ER modeling of entities, attributes, relationships, and cardinalities | [docs/ER_DESIGN.md](docs/ER_DESIGN.md) | Design is reflected in [backend/app/db/schema/table.sql](backend/app/db/schema/table.sql) without changing table or relationship structure |
 | Requirement 3 | ER diagram | [docs/diagrams/er_diagram.png](diagrams/er_diagram.png) | Visual artifact included in repo |
-| Requirement 4 | Relational schema, keys, functional dependencies, and normalization | [backend/app/db/schema/table.sql](backend/app/db/schema/table.sql), [docs/ER_DESIGN.md](docs/ER_DESIGN.md) | `tests/test_backend.py::InitializationTests`, `tests/test_backend.py::ConstraintTests` |
+| Requirement 4 | Relational schema, keys, functional dependencies, and normalization | [backend/app/db/schema/table.sql](backend/app/db/schema/table.sql), [docs/ER_DESIGN.md](docs/ER_DESIGN.md) | `backend/tests/test_backend.py::InitializationTests`, `backend/tests/test_backend.py::ConstraintTests` |
 | Requirement 5 | Sample data that supports realistic workflows | [backend/app/db/data](backend/app/db/data), [README.md](README.md) | Database rebuild from CSV is exercised in every automated test case |
-| Requirement 6 | Operational SQL queries | [backend/app/db/queries/operational_queries.sql](backend/app/db/queries/operational_queries.sql) | `tests/test_backend.py::QueryRegistryTests.test_official_queries_are_read_only_and_runnable_in_sqlite` |
-| Requirement 7 | Analytical SQL queries / data analysis | [backend/app/db/queries/analytical_queries.sql](backend/app/db/queries/analytical_queries.sql) | `tests/test_backend.py::QueryRegistryTests.test_official_queries_are_read_only_and_runnable_in_sqlite` |
-| Requirement 8 | Index recommendations and performance-oriented access paths | [backend/app/db/schema/indexing.sql](backend/app/db/schema/indexing.sql), [README.md](README.md) | `tests/test_backend.py::InitializationTests.test_initialization_builds_indexes_and_clean_audit` confirms indexes are actually created |
-| Requirement 9 | Working prototype / interface / integrated system | [backend/app/services/web_server_legacy.py](backend/app/services/web_server_legacy.py), [frontend/legacy/pawtrack_demo.html](frontend/legacy/pawtrack_demo.html) | `tests/test_backend.py::WorkflowTests`, `tests/test_backend.py::HttpSmokeTests` |
-| Bonus | LLM + Database integration: prompt-to-SQL generation | [backend/app/services/llm_sql_assistant.py](backend/app/services/llm_sql_assistant.py), [frontend/legacy/pawtrack_demo.html](frontend/legacy/pawtrack_demo.html) | `tests/test_backend.py::QueryRegistryTests.test_glm_generated_query_executes_after_validation_with_fake_client`, `tests/test_backend.py::QueryRegistryTests.test_glm_generated_query_rejects_unsafe_sql`, `tests/test_backend.py::HttpSmokeTests.test_glm_generate_query_reports_missing_api_key` |
+| Requirement 6 | Operational SQL queries | [backend/app/db/queries/operational_queries.sql](backend/app/db/queries/operational_queries.sql) | `backend/tests/test_backend.py::QueryRegistryTests.test_official_queries_are_read_only_and_runnable_in_sqlite` |
+| Requirement 7 | Analytical SQL queries / data analysis | [backend/app/db/queries/analytical_queries.sql](backend/app/db/queries/analytical_queries.sql) | `backend/tests/test_backend.py::QueryRegistryTests.test_official_queries_are_read_only_and_runnable_in_sqlite` |
+| Requirement 8 | Index recommendations and performance-oriented access paths | [backend/app/db/schema/indexing.sql](backend/app/db/schema/indexing.sql), [README.md](README.md) | `backend/tests/test_backend.py::InitializationTests.test_initialization_builds_indexes_and_clean_audit` confirms indexes are actually created |
+| Requirement 9 | Working prototype / interface / integrated system | [backend/app/services/pawtrack_service.py](backend/app/services/pawtrack_service.py), [frontend/src](frontend/src) | `backend/tests/test_backend.py::WorkflowTests`, `backend/tests/test_backend.py::HttpSmokeTests` |
+| Bonus | LLM + Database integration: prompt-to-SQL generation | [backend/app/services/llm_sql_assistant.py](backend/app/services/llm_sql_assistant.py), [frontend/src](frontend/src) | `backend/tests/test_backend.py::QueryRegistryTests.test_glm_generated_query_executes_after_validation_with_fake_client`, `backend/tests/test_backend.py::QueryRegistryTests.test_glm_generated_query_rejects_unsafe_sql`, `backend/tests/test_backend.py::HttpSmokeTests.test_glm_generate_query_reports_missing_api_key` |
 
 ## Implementation Notes
 
@@ -32,8 +32,8 @@ Verified against the repository state on April 23, 2026. SQLite is the official 
 
 ```powershell
 npm run api
-python -m unittest discover -s tests -v
-python -m py_compile backend\app\services\web_server_legacy.py backend\app\services\query_registry.py backend\app\services\llm_sql_assistant.py
+python3 -m pytest backend/tests
+python -m py_compile backend\app\services\pawtrack_service.py backend\app\services\query_registry.py backend\app\services\llm_sql_assistant.py
 ```
 
 ## Current Snapshot

@@ -9,15 +9,15 @@ SQLite-backed course project for managing shelters, pets, adoption applications,
 - ER design, table set, field set, and relationships were kept unchanged.
 - The schema was hardened with declarative constraints that match the documented design.
 - Official SQL deliverables now run directly on SQLite.
-- The web prototype uses GLM-generated prompt-to-SQL with backend read-only validation.
+- The web application uses GLM-generated prompt-to-SQL with backend read-only validation.
 - Index recommendations are now applied during database initialization instead of remaining documentation-only.
 
 ## Repository Map
 
 | Path | Purpose |
 |---|---|
-| `backend/` | FastAPI backend wrapper with routers, config, and compatibility layer |
-| `frontend/` | Vue/Vite shell that preserves the existing `frontend/legacy/pawtrack_demo.html` UI |
+| `backend/` | FastAPI backend with routers, config, and service layer |
+| `frontend/` | Vue/Vite frontend with template, styles, and interaction logic split under `src/` |
 | `docs/ER_DESIGN.md` | Design rationale, functional requirements, cardinalities, FDs, normalization |
 | `PROJECT_STRUCTURE.md` | Current project layout and cleanup guidance |
 | `docs/diagrams/er_diagram.png` | ER diagram artifact |
@@ -29,12 +29,12 @@ SQLite-backed course project for managing shelters, pets, adoption applications,
 | `docs/sql/WORKFLOW_SQL_EXAMPLES.md` | Workflow-oriented mutation examples kept outside the read-only registry |
 | `backend/app/services/query_registry.py` | Parser/catalog helper for the 12 official reviewed read-only SQL deliverables |
 | `backend/app/services/llm_sql_assistant.py` | GLM prompt-to-SQL generation, prompt construction, SQL validation, and read-only execution |
-| `backend/app/services/web_server_legacy.py` | Existing database initialization, validation, and service behavior moved under backend |
+| `backend/app/services/pawtrack_service.py` | Database initialization, validation, and service behavior |
 | `docs/` | Supporting design, workflow SQL, and diagram documents |
-| `frontend/legacy/pawtrack_demo.html` | Preserved full frontend UI served by FastAPI |
+| `frontend/src/` | PawTrack frontend source code |
 | `docs/TEST_CASES.md` | Manual test design and reproducible validation checklist |
 | `docs/REQUIREMENT_TRACEABILITY.md` | Requirement-to-evidence mapping for report and presentation use |
-| `tests/test_backend.py` | Automated regression tests |
+| `backend/tests/test_backend.py` | Automated regression tests |
 
 ## Data Snapshot
 
@@ -84,7 +84,7 @@ The implementation preserves the original ER structure while making the document
   - care-assignment shelter consistency
   - follow-up timing and adoption workflow ordering
 
-The backend still runs these checks during database initialization so invalid source data fails early instead of producing a broken demo database.
+The backend still runs these checks during database initialization so invalid source data fails early.
 
 ## Official SQL Deliverables
 
@@ -115,7 +115,7 @@ Important changes from the earlier draft:
 
 ### Frontend
 
-`frontend/legacy/pawtrack_demo.html` is a single-file prototype covering:
+The Vue frontend covers:
 
 - Dashboard
 - Pets
@@ -212,9 +212,8 @@ Then open:
 
 - `http://127.0.0.1:5173`
 
-The API runs at `http://127.0.0.1:8000`. The Vue app currently preserves the
-existing UI by embedding `frontend/legacy/pawtrack_demo.html`, so the visual style and workflows
-remain unchanged while the codebase is standardized.
+The API runs at `http://127.0.0.1:8000`. The Vue app keeps the PawTrack visual
+style and workflows while using a standard Vite source layout.
 
 ### Render deployment
 
@@ -232,13 +231,13 @@ The repository also includes `render.yaml` with the same commands for Blueprint-
 ### Automated tests
 
 ```powershell
-python -m unittest discover -s tests -v
+python3 -m pytest backend/tests
 ```
 
 ### Syntax check
 
 ```powershell
-python -m py_compile backend\app\services\web_server_legacy.py backend\app\services\query_registry.py backend\app\services\llm_sql_assistant.py
+python -m py_compile backend\app\services\pawtrack_service.py backend\app\services\query_registry.py backend\app\services\llm_sql_assistant.py
 ```
 
 ### Manual checks
@@ -251,5 +250,5 @@ See:
 ## Known Boundaries
 
 - SQLite is the official target; the repository no longer treats MySQL syntax as the canonical deliverable.
-- The prototype is designed for course demonstration and validation, not multi-user production deployment.
+- The application is designed for course demonstration and validation, not multi-user production deployment.
 - GLM-generated SQL requires `openai>=1.0` and `ZAI_API_KEY`.

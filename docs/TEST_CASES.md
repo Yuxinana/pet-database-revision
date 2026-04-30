@@ -6,7 +6,7 @@ This document is aligned with the current SQLite implementation verified on Apri
 
 The project now uses two complementary validation tracks:
 
-1. Automated regression tests in [tests/test_backend.py](tests/test_backend.py)
+1. Automated regression tests in [backend/tests/test_backend.py](../backend/tests/test_backend.py)
 2. Manual demonstration-oriented checks for SQL, API, and workflow behavior
 
 ## Quick Run
@@ -21,7 +21,7 @@ npm run api
 Run automated tests:
 
 ```powershell
-python -m unittest discover -s tests -v
+python3 -m pytest backend/tests
 ```
 
 ## Automated Coverage
@@ -98,7 +98,7 @@ Goal:
 How to verify:
 
 1. Start `npm run api`
-2. Open `http://127.0.0.1:8000/pawtrack_demo.html`
+2. Open the Vue app at `http://127.0.0.1:5173`
 3. Go to `Applications`
 4. Click `+ New application`
 5. Submit a valid application for an available pet
@@ -264,7 +264,7 @@ Automated counterpart:
 Use this checklist for demos:
 
 - backend starts successfully after `--reset-db`
-- `frontend/legacy/pawtrack_demo.html` loads through the backend
+- the Vue frontend loads through Vite or through the FastAPI-served production build
 - dashboard cards render real data
 - applications page can create and review an application
 - analytics page renders occupancy and follow-up sections

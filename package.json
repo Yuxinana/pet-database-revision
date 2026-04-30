@@ -3,13 +3,15 @@
   "version": "1.0.0",
   "description": "FastAPI and Vue application for managing shelters, pets, adoption applications, completed adoptions, follow-ups, medical history, vaccinations, and volunteer care assignments.",
   "directories": {
-    "test": "tests"
+    "test": "backend/tests"
   },
   "scripts": {
     "api": "uvicorn backend.app.main:app --reload --host 127.0.0.1 --port 8000",
     "frontend": "npm --prefix frontend run dev",
     "frontend:build": "npm --prefix frontend run build",
-    "test": "python3 -m pytest tests"
+    "test": "npm run test:backend && npm run test:frontend",
+    "test:backend": "python3 -m pytest backend/tests",
+    "test:frontend": "npm --prefix frontend test"
   },
   "repository": {
     "type": "git",

@@ -23,7 +23,6 @@ DATA_DIR = ROOT_DIR / "backend" / "app" / "db" / "data"
 SCHEMA_PATH = ROOT_DIR / "backend" / "app" / "db" / "schema" / "table.sql"
 INDEXING_PATH = ROOT_DIR / "backend" / "app" / "db" / "schema" / "indexing.sql"
 DB_PATH = ROOT_DIR / "pet_database.db"
-FRONTEND_PATH = ROOT_DIR / "frontend" / "legacy" / "pawtrack_demo.html"
 
 SEED_FILES = [
     ("SHELTER", "Shelter.csv"),

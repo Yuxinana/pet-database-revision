@@ -1,13 +1,9 @@
 # PawTrack FastAPI Backend
 
 This backend is the standardized FastAPI entry point for the existing PawTrack
-database application. It currently reuses the proven service functions in
-`backend/app/services/web_server_legacy.py` so the API contract, visual UI, and
-user workflows stay compatible while the codebase is migrated into smaller
-modules. `backend/app/services/web_server_legacy.py` remains as a thin compatibility entry point.
-The LLM SQL assistant implementation likewise lives under
-`backend/app/services/llm_sql_assistant.py`, with `backend/app/services/llm_sql_assistant.py`
-kept as a compatibility entry point.
+database application. The API routes call the service layer in
+`backend/app/services/pawtrack_service.py`, while prompt-to-SQL behavior lives
+in `backend/app/services/llm_sql_assistant.py`.
 
 Run it from the repository root:
 

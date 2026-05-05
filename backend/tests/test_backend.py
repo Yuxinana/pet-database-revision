@@ -69,6 +69,25 @@ class DatabaseFixtureMixin:
 
 
 class InitializationTests(DatabaseFixtureMixin, unittest.TestCase):
+    def test_seed_rebuild_loads_expected_domain_tables(self) -> None:
+        expected_counts = {
+            "SHELTER": 3,
+            "PET": 20,
+            "APPLICANT": 15,
+            "ADOPTION_APPLICATION": 15,
+            "ADOPTION_RECORD": 6,
+            "FOLLOW_UP": 16,
+            "MEDICAL_RECORD": 25,
+            "VACCINATION": 20,
+            "VOLUNTEER": 10,
+            "CARE_ASSIGNMENT": 15,
+        }
+        with closing(self.connect()) as conn:
+            for table, expected_count in expected_counts.items():
+                with self.subTest(table=table):
+                    actual_count = conn.execute(f"SELECT COUNT(*) AS count FROM {table}").fetchone()["count"]
+                    self.assertEqual(actual_count, expected_count)
+
     def test_initialization_builds_indexes_and_clean_audit(self) -> None:
         expected_indexes = {
             "idx_pet_shelter_id",
@@ -184,6 +203,32 @@ class ConstraintTests(DatabaseFixtureMixin, unittest.TestCase):
                     VALUES (?, ?, '2026-04-23', 120.0, 'Duplicate test')
                     """,
                     (999, existing["application_id"]),
+                )
+
+    def test_temporal_constraints_are_rejected_by_schema(self) -> None:
+        with closing(self.connect()) as conn:
+            with self.assertRaises(sqlite3.IntegrityError):
+                conn.execute(
+                    """
+                    INSERT INTO PET (
+                        pet_id, shelter_id, name, species, breed, sex, color,
+                        estimated_birth_date, intake_date, status, is_sterilized, special_needs
+                    )
+                    VALUES (998, 1, 'Time Test', 'Dog', 'Mix', 'Female', 'Brown',
+                            '2026-05-02', '2026-05-01', 'available', 1, NULL)
+                    """
+                )
+
+            with self.assertRaises(sqlite3.IntegrityError):
+                conn.execute(
+                    """
+                    INSERT INTO VACCINATION (
+                        vaccination_id, pet_id, vaccine_name, dose_no,
+                        vaccination_date, next_due_date, vet_name, notes
+                    )
+                    VALUES (998, 1, 'Temporal Vaccine', 1,
+                            '2026-05-02', '2026-05-01', 'Dr. Time', 'Invalid due date')
+                    """
                 )
 
     def test_cross_shelter_care_assignment_is_rejected(self) -> None:
@@ -303,6 +348,43 @@ class QueryRegistryTests(DatabaseFixtureMixin, unittest.TestCase):
         self.assertEqual(result["rowCount"], 3)
         self.assertTrue(result["generatedSql"].lstrip().upper().startswith("SELECT"))
         self.assertEqual(result["semanticRetries"], 0)
+
+    def test_glm_preview_mode_validates_without_executing_rows(self) -> None:
+        fake = FakeGlmClient(
+            json.dumps(
+                {
+                    "sql": "SELECT pet_id, name FROM PET ORDER BY pet_id",
+                    "explanation": "Preview all pet rows without execution.",
+                    "tables_used": ["PET"],
+                    "assumptions": [],
+                    "confidence": 0.9,
+                    "prompt_method": "few_shot",
+                }
+            )
+        )
+        with closing(self.connect()) as conn:
+            result = web_server.run_llm_generate_query(
+                conn,
+                {"prompt": "Preview pet names", "promptMethod": "few_shot", "execute": False},
+                client=fake,
+            )
+
+        self.assertTrue(result["validation"]["safe"])
+        self.assertEqual(result["promptMethod"], "few_shot")
+        self.assertEqual(result["rowCount"], 0)
+        self.assertEqual(result["rows"], [])
+        self.assertEqual(len(fake.calls), 1)
+
+    def test_generated_select_execution_caps_result_rows(self) -> None:
+        rows, validation = llm_sql_assistant.execute_generated_select(
+            self.db_path,
+            "SELECT pet_id, name FROM PET ORDER BY pet_id",
+            max_rows=10,
+        )
+        self.assertEqual(len(rows), 10)
+        self.assertTrue(validation["truncated"])
+        self.assertIn("sqlite_authorizer", validation["checkedBy"])
+        self.assertIn("explain_query_plan", validation["checkedBy"])
 
     def test_glm_generated_query_rejects_unsafe_sql(self) -> None:
         dangerous_sql = [
@@ -608,6 +690,40 @@ class QueryRegistryTests(DatabaseFixtureMixin, unittest.TestCase):
 
         self.assertEqual(result["repairAttempts"], 1)
         self.assertEqual(len(fake.calls), 2)
+        self.assertGreater(result["rowCount"], 0)
+
+    def test_schema_grounded_repair_handles_unknown_table_name(self) -> None:
+        fake = FakeGlmClient(
+            json.dumps(
+                {
+                    "sql": "SELECT pet_id, name FROM ANIMAL ORDER BY pet_id",
+                    "explanation": "First draft guessed a non-existent table.",
+                    "tables_used": ["ANIMAL"],
+                    "assumptions": [],
+                    "confidence": 0.4,
+                    "prompt_method": "schema_grounded",
+                }
+            ),
+            json.dumps(
+                {
+                    "sql": "SELECT pet_id, name FROM PET ORDER BY pet_id",
+                    "explanation": "Repaired ANIMAL to the actual PET table.",
+                    "tables_used": ["PET"],
+                    "assumptions": ["Animals are stored in PET."],
+                    "confidence": 0.9,
+                    "prompt_method": "schema_grounded",
+                }
+            ),
+        )
+        with closing(self.connect()) as conn:
+            result = web_server.run_llm_generate_query(
+                conn,
+                {"prompt": "show animal names", "promptMethod": "schema_grounded"},
+                client=fake,
+            )
+
+        self.assertEqual(result["repairAttempts"], 1)
+        self.assertEqual(result["tablesUsed"], ["PET"])
         self.assertGreater(result["rowCount"], 0)
 
     def test_fragmented_prompt_is_rejected_before_llm_call(self) -> None:
@@ -1127,6 +1243,63 @@ class WorkflowTests(DatabaseFixtureMixin, unittest.TestCase):
         self.assertEqual(created["statusLabel"], "Pending")
         self.assertEqual(pending_after, pending_before + 1)
         self.assertEqual(pet_status, "reserved")
+
+    def test_approving_one_application_auto_rejects_competing_pending_applications(self) -> None:
+        first_applicant_id, pet_id = self.find_reserved_pet_pair()
+        with closing(self.connect()) as conn:
+            existing_pending = conn.execute(
+                """
+                SELECT application_id
+                FROM ADOPTION_APPLICATION
+                WHERE pet_id = ?
+                  AND status = 'Under Review'
+                ORDER BY application_id
+                LIMIT 1
+                """,
+                (pet_id,),
+            ).fetchone()
+            self.assertIsNotNone(existing_pending)
+
+            web_server.begin_write(conn)
+            competing = web_server.create_application(
+                conn,
+                {
+                    "applicantId": first_applicant_id,
+                    "petId": pet_id,
+                    "reason": "Competing application for workflow closure test.",
+                    "housingType": "Apartment",
+                },
+            )
+            reviewed = web_server.review_application(
+                conn,
+                competing["applicationId"],
+                {
+                    "decision": "Approved",
+                    "note": "Approved to test automatic closure of competing applications.",
+                    "reviewerName": "Workflow Reviewer",
+                    "finalAdoptionFee": 100,
+                },
+            )
+            competing_statuses = conn.execute(
+                """
+                SELECT application_id, status, decision_note
+                FROM ADOPTION_APPLICATION
+                WHERE pet_id = ?
+                  AND application_id != ?
+                """,
+                (pet_id, competing["applicationId"]),
+            ).fetchall()
+            pet_status = conn.execute(
+                "SELECT status FROM PET WHERE pet_id = ?",
+                (pet_id,),
+            ).fetchone()["status"]
+            conn.commit()
+
+        self.assertEqual(reviewed["rawStatus"], "Approved")
+        self.assertEqual(pet_status, "adopted")
+        self.assertTrue(competing_statuses)
+        self.assertTrue(all(row["status"] != "Under Review" for row in competing_statuses))
+        self.assertTrue(any("Automatically closed" in (row["decision_note"] or "") for row in competing_statuses))
 
 
 class CrudRoundTripTests(DatabaseFixtureMixin, unittest.TestCase):

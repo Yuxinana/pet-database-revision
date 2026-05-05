@@ -66,6 +66,56 @@ test('domain blocks deleting applicants with linked applications', () => {
   );
 });
 
+test('domain blocks shelter capacity below active pet count', () => {
+  const domain = createDomain(
+    {
+      pets: [
+        {petId: 1, shelterId: 2, rawStatus: 'available'},
+        {petId: 2, shelterId: 2, rawStatus: 'reserved'},
+        {petId: 3, shelterId: 2, rawStatus: 'adopted'},
+      ],
+    },
+    {mode: 'edit', id: 2},
+  );
+
+  assert.equal(
+    domain.clientValidateCrudPayload('shelters', {capacity: 1}),
+    'Shelter capacity cannot be lower than its active pet count.',
+  );
+});
+
+test('domain blocks cross-shelter care assignments', () => {
+  const domain = createDomain({
+    pets: [{petId: 1, shelterId: 10, intake: '2026-04-01'}],
+    volunteers: [{volunteerId: 3, shelterId: 20, joined: '2026-04-01'}],
+  });
+
+  assert.equal(
+    domain.clientValidateCrudPayload('care-assignments', {
+      petId: 1,
+      volunteerId: 3,
+      date: '2026-04-30',
+      status: 'Scheduled',
+    }),
+    'Volunteer and pet must belong to the same shelter for care assignments.',
+  );
+});
+
+test('domain blocks vaccination due date before vaccination date', () => {
+  const domain = createDomain({
+    pets: [{petId: 1, intake: '2026-04-01'}],
+  });
+
+  assert.equal(
+    domain.clientValidateCrudPayload('vaccinations', {
+      petId: 1,
+      vaccinationDate: '2026-04-20',
+      dueDate: '2026-04-19',
+    }),
+    'Next due date cannot be before vaccination date.',
+  );
+});
+
 test('domain exposes select options from current frontend state', () => {
   const domain = createDomain({
     pets: [{petId: 1, id: 'P-001', name: 'Mochi', shelter: 'North'}],
